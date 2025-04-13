@@ -21,12 +21,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/login")
   }
 
-  // Get user profile
+  // Get user profile - use a simpler query to avoid relationship issues
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+
+  // Create a fallback profile if none exists
+  const userProfile = profile || {
+    id: session.user.id,
+    email: session.user.email,
+    full_name: null,
+    avatar_url: null,
+    is_super_user: false,
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
-      <DashboardNav user={profile || { id: session.user.id, email: session.user.email }} />
+      <DashboardNav user={userProfile} />
       <main className="flex-1 bg-gray-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 w-full flex justify-center">
           <div className="w-full max-w-7xl">{children}</div>
