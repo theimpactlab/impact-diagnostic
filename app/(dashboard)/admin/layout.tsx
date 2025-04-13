@@ -20,11 +20,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/login")
   }
 
-  // Get user profile to check if they're an admin
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+  // Simple check for super user status
+  const { data: profile } = await supabase.from("profiles").select("is_super_user").eq("id", session.user.id).single()
 
-  // Check if user is an admin, if not redirect to dashboard
-  if (!profile?.is_admin) {
+  // If not a super user, redirect to dashboard
+  if (!profile?.is_super_user) {
     redirect("/dashboard")
   }
 
