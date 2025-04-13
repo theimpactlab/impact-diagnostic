@@ -9,11 +9,10 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase/client"
 
+// Modified navItems to only include Features
 const navItems = [
   { label: "Features", href: "/features" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "About", href: "/about" },
-  { label: "Contact", href: "/contact" },
+  // Removed pricing, about, and contact pages
 ]
 
 export default function LandingNavbar() {
