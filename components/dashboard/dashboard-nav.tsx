@@ -38,7 +38,9 @@ export default function DashboardNav({ user }: DashboardNavProps) {
     async function checkSuperUser() {
       if (user.is_super_user === undefined) {
         try {
+          // Simple check for super user status
           const { data } = await supabase.from("profiles").select("is_super_user").eq("id", user.id).single()
+
           setIsSuperUser(!!data?.is_super_user)
         } catch (error) {
           console.error("Error checking super user status:", error)
@@ -69,7 +71,7 @@ export default function DashboardNav({ user }: DashboardNavProps) {
         .split(" ")
         .map((n) => n[0])
         .join("")
-    : user.email?.[0].toUpperCase() || "U"
+    : user.email?.[0]?.toUpperCase() || "U"
 
   return (
     <header className="bg-white shadow">
