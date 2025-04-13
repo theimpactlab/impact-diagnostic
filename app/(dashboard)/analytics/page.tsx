@@ -3,19 +3,7 @@ import { cookies } from "next/headers"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DOMAINS } from "@/lib/constants"
-import { PolarArea } from "react-chartjs-2"
-import {
-  Chart as ChartJS,
-  RadialLinearScale,
-  ArcElement,
-  Tooltip,
-  Legend,
-  type ChartData,
-  type ChartOptions,
-} from "chart.js"
-
-// Register Chart.js components
-ChartJS.register(RadialLinearScale, ArcElement, Tooltip, Legend)
+import { Progress } from "@/components/ui/progress"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -103,45 +91,6 @@ export default async function AnalyticsPage() {
     domainScores[domainId].avg = count > 0 ? total / count : 0
   })
 
-  // Prepare chart data
-  const chartData: ChartData<"polarArea"> = {
-    labels: DOMAINS.map((domain) => domain.name),
-    datasets: [
-      {
-        label: "Average Score",
-        data: DOMAINS.map((domain) => domainScores[domain.id]?.avg || 0),
-        backgroundColor: [
-          "rgba(255, 99, 132, 0.5)",
-          "rgba(54, 162, 235, 0.5)",
-          "rgba(255, 206, 86, 0.5)",
-          "rgba(75, 192, 192, 0.5)",
-          "rgba(153, 102, 255, 0.5)",
-          "rgba(255, 159, 64, 0.5)",
-          "rgba(199, 199, 199, 0.5)",
-        ],
-        borderWidth: 1,
-      },
-    ],
-  }
-
-  const chartOptions: ChartOptions<"polarArea"> = {
-    responsive: true,
-    scales: {
-      r: {
-        min: 0,
-        max: 10,
-        ticks: {
-          stepSize: 2,
-        },
-      },
-    },
-    plugins: {
-      legend: {
-        position: "right",
-      },
-    },
-  }
-
   // Calculate overall stats
   const totalProjects = projects.length
   const completedAssessments =
@@ -224,8 +173,21 @@ export default async function AnalyticsPage() {
                 <CardTitle>Domain Score Overview</CardTitle>
                 <CardDescription>Average scores across all domains</CardDescription>
               </CardHeader>
-              <CardContent className="h-80">
-                <PolarArea data={chartData} options={chartOptions} />
+              <CardContent>
+                <div className="space-y-4">
+                  {DOMAINS.map((domain) => {
+                    const avgScore = domainScores[domain.id]?.avg || 0
+                    return (
+                      <div key={domain.id}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">{domain.name}</span>
+                          <span className="text-sm font-medium">{avgScore.toFixed(1)}</span>
+                        </div>
+                        <Progress value={(avgScore / 10) * 100} className="h-2" />
+                      </div>
+                    )
+                  })}
+                </div>
               </CardContent>
             </Card>
 
