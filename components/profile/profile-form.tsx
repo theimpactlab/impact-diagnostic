@@ -149,13 +149,14 @@ export default function ProfileForm({ profile, organizations }: ProfileFormProps
     }
   }
 
+  // Safely get user initials, handling null values
   const userInitials = profile.full_name
     ? profile.full_name
         .split(" ")
         .map((n) => n[0])
         .join("")
         .toUpperCase()
-    : profile.email?.[0].toUpperCase() || "U"
+    : profile.email?.[0]?.toUpperCase() || "U"
 
   return (
     <div className="space-y-6">
