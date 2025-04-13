@@ -95,7 +95,7 @@ export default function DomainsList({ domains, projectId, assessmentId }: Domain
               </CardContent>
               <CardFooter className="border-t bg-muted/50 px-6 py-3">
                 <Button asChild variant="ghost" className="w-full justify-between">
-                  <Link href={`/projects/${projectId}/domains/${domain.id}`}>
+                  <Link href={`/projects/${projectId}/${domain.id}?assessment=${assessmentId}`}>
                     <span>{domain.progress > 0 ? "Continue Assessment" : "Start Assessment"}</span>
                     <span className="sr-only">Go to {domain.name}</span>
                   </Link>
