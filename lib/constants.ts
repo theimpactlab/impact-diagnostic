@@ -352,3 +352,5 @@ export const getScoreBackgroundColor = (score: number) => {
     return "rgba(75, 192, 192, 0.6)" // Green for high scores
   }
 }
+
+export const DOMAINS = ASSESSMENT_DOMAINS
