@@ -40,7 +40,22 @@ export default function ResultsOverview({ domainScores, overallScore }: ResultsO
     // Prepare data for radar chart
     const labels = assessmentDomainScores.map((d) => d.name)
     const data = assessmentDomainScores.map((d) => d.score)
-    const backgroundColors = assessmentDomainScores.map((d) => getScoreBackgroundColor(d.score))
+
+    // Explicit RAG colors based on score ranges
+    const getChartColor = (score: number) => {
+      if (score < 3.5) return "rgba(239, 68, 68, 0.7)" // Red with transparency
+      if (score < 7) return "rgba(245, 158, 11, 0.7)" // Amber with transparency
+      return "rgba(34, 197, 94, 0.7)" // Green with transparency
+    }
+
+    const getBorderColor = (score: number) => {
+      if (score < 3.5) return "rgb(239, 68, 68)" // Red
+      if (score < 7) return "rgb(245, 158, 11)" // Amber
+      return "rgb(34, 197, 94)" // Green
+    }
+
+    const backgroundColors = assessmentDomainScores.map((d) => getChartColor(d.score))
+    const borderColors = assessmentDomainScores.map((d) => getBorderColor(d.score))
 
     // Create radar chart
     chartInstance.current = new Chart(ctx, {
@@ -51,8 +66,8 @@ export default function ResultsOverview({ domainScores, overallScore }: ResultsO
           {
             label: "Domain Scores",
             data,
-            backgroundColor: backgroundColors.map((color) => color + "80"), // Add transparency
-            borderColor: backgroundColors,
+            backgroundColor: backgroundColors,
+            borderColor: borderColors,
             borderWidth: 1,
           },
         ],
