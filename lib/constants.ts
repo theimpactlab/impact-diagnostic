@@ -56,47 +56,47 @@ export const getScoreColor = (score: number): string => {
   return "text-red-600"
 }
 
-export const DOMAINS = [
+export const ASSESSMENT_DOMAINS = [
   {
     id: "Target",
     name: "Target Population",
     description: "Understanding and meeting the needs of the intended beneficiaries.",
-    questions: DOMAIN_QUESTIONS["Target"],
+    questionCount: 2,
   },
   {
     id: "FileText",
     name: "Theory of Change",
     description: "Articulating the causal pathways through which activities lead to outcomes.",
-    questions: DOMAIN_QUESTIONS["FileText"],
+    questionCount: 2,
   },
   {
     id: "Users",
     name: "Stakeholder Engagement",
     description: "Involving stakeholders in the design, implementation, and evaluation of programs.",
-    questions: DOMAIN_QUESTIONS["Users"],
+    questionCount: 2,
   },
   {
     id: "GitBranch",
     name: "Impact Measurement Framework",
     description: "Establishing a systematic approach to measuring and managing impact.",
-    questions: DOMAIN_QUESTIONS["GitBranch"],
+    questionCount: 2,
   },
   {
     id: "BarChart",
     name: "Data Collection & Analysis",
     description: "Gathering and interpreting data to inform decision-making.",
-    questions: DOMAIN_QUESTIONS["BarChart"],
+    questionCount: 2,
   },
   {
     id: "Database",
     name: "Data Management",
     description: "Ensuring the quality, security, and accessibility of data.",
-    questions: DOMAIN_QUESTIONS["Database"],
+    questionCount: 2,
   },
   {
     id: "Settings",
     name: "Systems Capabilities",
     description: "Building organizational capacity for effective impact measurement.",
-    questions: DOMAIN_QUESTIONS["Settings"],
+    questionCount: 2,
   },
 ]
