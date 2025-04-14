@@ -48,12 +48,6 @@ export const ASSESSMENT_DOMAINS = [
     questionCount: 5,
     icon: "Settings",
   },
-  {
-    id: "details",
-    name: "Project Details",
-    description: "Basic information about your project.",
-    questionCount: 0,
-  },
 ]
 
 export const DOMAIN_QUESTIONS = {
