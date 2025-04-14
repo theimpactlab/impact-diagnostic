@@ -33,7 +33,7 @@ export function DomainsList({ projectId, scores = [] }: DomainsListProps) {
     const scoresByDomain: Record<string, any[]> = {}
 
     scores.forEach((score) => {
-      const domainId = score.domain_id || score.domain
+      const domainId = score.domain || score.domain_id
       if (!domainId) return
 
       if (!scoresByDomain[domainId]) {
@@ -49,7 +49,7 @@ export function DomainsList({ projectId, scores = [] }: DomainsListProps) {
 
     ASSESSMENT_DOMAINS.forEach((domain) => {
       const domainScores = scoresByDomain[domain.id] || []
-      const domainQuestions = domain.questionCount || 2 // Default to 2 if not specified
+      const domainQuestions = domain.questions?.length || 0
 
       // Count questions with scores
       const answeredDomainQuestions = domainScores.filter(
@@ -105,8 +105,8 @@ export function DomainsList({ projectId, scores = [] }: DomainsListProps) {
           const progress = domainProgress[domain.id] || 0
           const isComplete = progress === 100
 
-          // Find assessment ID from scores
-          const domainScores = scores.filter((s) => s.domain_id === domain.id || s.domain === domain.id)
+          // Find existing assessment ID if available
+          const domainScores = scores.filter((s) => s.domain === domain.id || s.domain_id === domain.id)
           const assessmentId = domainScores.length > 0 ? domainScores[0].assessment_id : "new"
 
           return (

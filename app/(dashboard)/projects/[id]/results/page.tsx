@@ -48,7 +48,7 @@ export default async function ResultsPage({ params }: { params: { id: string } }
 
   const assessmentId = assessments && assessments.length > 0 ? assessments[0].id : null
 
-  // Try to get scores from assessment_scores table first
+  // Try to get scores from assessment_scores table
   let scores = []
   if (assessmentId) {
     const { data: assessmentScores, error: assessmentScoresError } = await supabase
@@ -78,7 +78,7 @@ export default async function ResultsPage({ params }: { params: { id: string } }
   // Process scores by domain
   const domainScores = ASSESSMENT_DOMAINS.map((domain) => {
     // Filter scores for this domain
-    const domainScores = scores.filter((score) => score.domain_id === domain.id || score.domain === domain.id)
+    const domainScores = scores.filter((score) => score.domain === domain.id || score.domain_id === domain.id)
 
     // Calculate average score for this domain
     let totalScore = 0
@@ -94,8 +94,8 @@ export default async function ResultsPage({ params }: { params: { id: string } }
     const averageScore = scoredQuestions > 0 ? Math.round((totalScore / scoredQuestions) * 10) / 10 : 0
 
     // Calculate completion percentage
-    const totalQuestions = domain.questionCount || 2 // Default to 2 if not specified
-    const completionPercentage = Math.round((scoredQuestions / totalQuestions) * 100)
+    const totalQuestions = domain.questions?.length || 0
+    const completionPercentage = totalQuestions > 0 ? Math.round((scoredQuestions / totalQuestions) * 100) : 0
 
     return {
       id: domain.id,

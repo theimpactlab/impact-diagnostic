@@ -112,6 +112,18 @@ export function ProjectDataDebug() {
     }
   }
 
+  // Find domain by ID
+  const findDomainById = (domainId: string) => {
+    return ASSESSMENT_DOMAINS.find((d) => d.id === domainId) || { name: domainId, questions: [] }
+  }
+
+  // Find question by ID within a domain
+  const findQuestionById = (domainId: string, questionId: string) => {
+    const domain = findDomainById(domainId)
+    const question = domain.questions?.find((q) => q.id === questionId)
+    return question?.question || questionId
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -248,14 +260,16 @@ export function ProjectDataDebug() {
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {assessmentScores.map((score) => {
-                        const domain = ASSESSMENT_DOMAINS.find((d) => d.id === score.domain || d.id === score.domain_id)
-                        const question = domain?.questions?.find((q) => q.id === score.question_id)
+                        const domainId = score.domain || score.domain_id
+                        const questionId = score.question_id || score.question
+                        const domainName = findDomainById(domainId).name
+                        const questionText = findQuestionById(domainId, questionId)
 
                         return (
                           <tr key={score.id}>
                             <td className="px-4 py-2 text-sm">{score.id}</td>
-                            <td className="px-4 py-2 text-sm">{domain?.name || score.domain || score.domain_id}</td>
-                            <td className="px-4 py-2 text-sm">{question?.question || score.question_id}</td>
+                            <td className="px-4 py-2 text-sm">{domainName}</td>
+                            <td className="px-4 py-2 text-sm">{questionText}</td>
                             <td className="px-4 py-2 text-sm">{score.score}</td>
                           </tr>
                         )
@@ -296,18 +310,16 @@ export function ProjectDataDebug() {
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {scores.map((score) => {
-                        const domain = ASSESSMENT_DOMAINS.find((d) => d.id === score.domain_id || d.id === score.domain)
-                        const question = domain?.questions?.find(
-                          (q) => q.id === score.question_id || q.id === score.question,
-                        )
+                        const domainId = score.domain || score.domain_id
+                        const questionId = score.question || score.question_id
+                        const domainName = findDomainById(domainId).name
+                        const questionText = findQuestionById(domainId, questionId)
 
                         return (
                           <tr key={score.id}>
                             <td className="px-4 py-2 text-sm">{score.id}</td>
-                            <td className="px-4 py-2 text-sm">{domain?.name || score.domain_id || score.domain}</td>
-                            <td className="px-4 py-2 text-sm">
-                              {question?.question || score.question_id || score.question}
-                            </td>
+                            <td className="px-4 py-2 text-sm">{domainName}</td>
+                            <td className="px-4 py-2 text-sm">{questionText}</td>
                             <td className="px-4 py-2 text-sm">{score.score}</td>
                           </tr>
                         )
@@ -347,8 +359,8 @@ export function ProjectDataDebug() {
                   const answeredQuestions = Math.max(answeredQuestionsFromAssessmentScores, answeredQuestionsFromScores)
 
                   // Calculate progress
-                  const totalQuestions = domain.questionCount || 2
-                  const progress = Math.round((answeredQuestions / totalQuestions) * 100)
+                  const totalQuestions = domain.questions?.length || 0
+                  const progress = totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0
 
                   return (
                     <div key={domain.id}>
