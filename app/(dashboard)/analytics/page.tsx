@@ -77,28 +77,44 @@ export default async function AnalyticsPage() {
     )
   }
 
-  // Get all scores for these assessments
+  // Get all scores for these assessments - try assessment_scores first
   const assessmentIds = assessments.map((a) => a.id)
-  const { data: scores, error: scoresError } = await supabase
+  let scores = null
+  let scoresError = null
+
+  // Try assessment_scores table first
+  const { data: assessmentScores, error: assessmentScoresError } = await supabase
     .from("assessment_scores")
     .select("id, assessment_id, domain, score, created_at")
     .in("assessment_id", assessmentIds)
 
-  if (scoresError) {
-    console.error("Error fetching scores:", scoresError.message, scoresError)
+  if (assessmentScoresError) {
+    console.error("Error fetching from assessment_scores:", assessmentScoresError)
 
-    // Check if the table exists
-    const { data: tables, error: tablesError } = await supabase
-      .from("pg_tables")
-      .select("tablename")
-      .eq("schemaname", "public")
+    // If assessment_scores fails, try the scores table
+    const { data: oldScores, error: oldScoresError } = await supabase
+      .from("scores")
+      .select("id, assessment_id, domain_id, score, created_at")
+      .in("assessment_id", assessmentIds)
 
-    if (tablesError) {
-      console.error("Error checking tables:", tablesError)
+    if (oldScoresError) {
+      console.error("Error fetching from scores:", oldScoresError)
+      scoresError = oldScoresError
     } else {
-      console.log("Available tables:", tables)
+      // Map the old scores format to the new format
+      scores = oldScores?.map((s) => ({
+        id: s.id,
+        assessment_id: s.assessment_id,
+        domain: s.domain_id,
+        score: s.score,
+        created_at: s.created_at,
+      }))
     }
+  } else {
+    scores = assessmentScores
+  }
 
+  if (!scores && scoresError) {
     return <div>Error loading score data: {scoresError.message}</div>
   }
 
