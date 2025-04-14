@@ -1,28 +1,23 @@
 import { notFound } from "next/navigation"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
-
-import { ProjectHeader } from "@/components/projects/project-header"
-import { ResultsOverview } from "@/components/projects/results-overview"
-import { DownloadResultsButton } from "@/components/projects/download-results-button"
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { ASSESSMENT_DOMAINS } from "@/lib/constants"
+import ResultsOverview from "@/components/projects/results-overview"
+import DownloadResultsButton from "@/components/projects/download-results-button"
 
 export const dynamic = "force-dynamic"
-export const revalidate = 0
 
-export default async function ResultsPage({ params }: { params: { id: string } }) {
-  const supabase = createServerComponentClient({ cookies })
-
-  // Get the current session
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (!session) {
-    return notFound()
+interface ResultsPageProps {
+  params: {
+    id: string
   }
+}
 
-  // Get the project
+export default async function ResultsPage({ params }: ResultsPageProps) {
+  const cookieStore = cookies()
+  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+
+  // Get project details
   const { data: project, error: projectError } = await supabase
     .from("projects")
     .select("*, organizations(*)")
@@ -30,103 +25,84 @@ export default async function ResultsPage({ params }: { params: { id: string } }
     .single()
 
   if (projectError || !project) {
-    console.error("Error fetching project:", projectError)
-    return notFound()
+    notFound()
   }
 
-  // Get the assessment for this project
-  const { data: assessments, error: assessmentError } = await supabase
+  // Get the latest assessment for this project
+  const { data: assessment } = await supabase
     .from("assessments")
     .select("*")
     .eq("project_id", params.id)
     .order("created_at", { ascending: false })
     .limit(1)
+    .single()
 
-  if (assessmentError) {
-    console.error("Error fetching assessment:", assessmentError)
-  }
+  // Get all scores for this assessment
+  const { data: scores } = await supabase.from("assessment_scores").select("*").eq("assessment_id", assessment.id)
 
-  const assessmentId = assessments && assessments.length > 0 ? assessments[0].id : null
-
-  // Try to get scores from assessment_scores table
-  let scores = []
-  if (assessmentId) {
-    const { data: assessmentScores, error: assessmentScoresError } = await supabase
-      .from("assessment_scores")
-      .select("*")
-      .eq("assessment_id", assessmentId)
-
-    if (assessmentScoresError) {
-      console.error("Error fetching assessment_scores:", assessmentScoresError)
-    } else if (assessmentScores && assessmentScores.length > 0) {
-      scores = assessmentScores
-    } else {
-      // If no data in assessment_scores, try the scores table
-      const { data: oldScores, error: oldScoresError } = await supabase
-        .from("scores")
-        .select("*")
-        .eq("assessment_id", assessmentId)
-
-      if (oldScoresError) {
-        console.error("Error fetching scores:", oldScoresError)
-      } else if (oldScores && oldScores.length > 0) {
-        scores = oldScores
-      }
-    }
-  }
-
-  // Process scores by domain
+  // Calculate domain scores
   const domainScores = ASSESSMENT_DOMAINS.map((domain) => {
-    // Filter scores for this domain
-    const domainScores = scores.filter((score) => score.domain === domain.id || score.domain_id === domain.id)
-
-    // Calculate average score for this domain
-    let totalScore = 0
-    let scoredQuestions = 0
-
-    domainScores.forEach((score) => {
-      if (score.score !== null && score.score !== undefined) {
-        totalScore += Number(score.score)
-        scoredQuestions++
-      }
-    })
-
-    const averageScore = scoredQuestions > 0 ? Math.round((totalScore / scoredQuestions) * 10) / 10 : 0
-
-    // Calculate completion percentage
-    const totalQuestions = domain.questions?.length || 0
-    const completionPercentage = totalQuestions > 0 ? Math.round((scoredQuestions / totalQuestions) * 100) : 0
+    const domainScores = scores?.filter((score) => score.domain === domain.id) || []
+    const totalQuestions = domain.questionCount || 0
+    const completedQuestions = domainScores.length
+    const averageScore =
+      domainScores.length > 0 ? domainScores.reduce((sum, score) => sum + score.score, 0) / domainScores.length : 0
 
     return {
       id: domain.id,
       name: domain.name,
       score: averageScore,
-      completion: completionPercentage,
+      completedQuestions,
       totalQuestions,
-      scoredQuestions,
-      questionScores: domainScores,
+      progress: totalQuestions > 0 ? (completedQuestions / totalQuestions) * 100 : 0,
+      questionScores: domainScores.map((score) => ({
+        question_id: score.question_id,
+        score: score.score,
+        notes: score.notes,
+      })),
     }
   })
 
-  return (
-    <div className="container mx-auto py-6 space-y-8">
-      <ProjectHeader project={project} />
+  // Calculate overall score (average of all domain scores)
+  const completedDomains = domainScores.filter((domain) => domain.completedQuestions > 0)
+  const overallScore =
+    completedDomains.length > 0
+      ? completedDomains.reduce((sum, domain) => sum + domain.score, 0) / completedDomains.length
+      : 0
 
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Assessment Results</h1>
-        <DownloadResultsButton project={project} domainScores={domainScores.filter((d) => d.scoredQuestions > 0)} />
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">{project.name} - Assessment Results</h1>
+        <DownloadResultsButton
+          projectName={project.name}
+          organizationName={project.organizations?.name || "Unknown Organization"}
+          domainScores={domainScores}
+          overallScore={overallScore}
+        />
       </div>
 
-      <ResultsOverview domainScores={domainScores.filter((d) => d.scoredQuestions > 0)} projectId={params.id} />
+      <div className="bg-white p-6 rounded-lg shadow">
+        <ResultsOverview domainScores={domainScores} overallScore={overallScore} />
+      </div>
 
-      {domainScores.every((d) => d.scoredQuestions === 0) && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
-          <h3 className="text-xl font-medium text-amber-800 mb-2">No Assessment Data</h3>
-          <p className="text-amber-700">
-            You haven't completed any assessment questions yet. Start an assessment to see your results here.
-          </p>
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-2xl font-semibold mb-6">Detailed Domain Scores</h2>
+        <div className="space-y-6">
+          {domainScores.map((domain) => (
+            <div key={domain.id} className="border-b pb-4 last:border-b-0">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-medium">{domain.name}</h3>
+                <span className="text-2xl font-bold">{domain.score.toFixed(1)}</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {domain.completedQuestions} of {domain.totalQuestions} questions answered ({Math.round(domain.progress)}
+                % complete)
+              </p>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   )
 }
