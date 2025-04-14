@@ -1,11 +1,10 @@
 import { cookies } from "next/headers"
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import ProjectsList from "@/components/dashboard/projects-list"
-import CreateProjectButton from "@/components/dashboard/create-project-button"
+import CreateProjectForm from "@/components/projects/create-project-form"
 
 export const dynamic = "force-dynamic"
 
-export default async function ProjectsPage() {
+export default async function NewProjectPage() {
   const cookieStore = cookies()
   const supabase = createServerComponentClient({ cookies: () => cookieStore })
 
@@ -13,27 +12,14 @@ export default async function ProjectsPage() {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // Get projects using a simpler query that avoids complex joins
-  const { data: projects, error: projectsError } = await supabase
-    .from("projects")
-    .select("*")
-    .order("created_at", { ascending: false })
-
-  // Log for debugging
-  console.log("Projects query for user:", session!.user.id)
-  console.log("Projects found:", projects?.length || 0)
-  if (projectsError) {
-    console.error("Error fetching projects:", projectsError)
-  }
-
   return (
-    <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
-        <CreateProjectButton />
+    <div className="max-w-2xl">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Create New Project</h1>
+        <p className="text-muted-foreground mt-2">Start a new impact assessment project for an organization</p>
       </div>
 
-      <ProjectsList projects={projects || []} />
+      <CreateProjectForm userId={session!.user.id} />
     </div>
   )
 }
