@@ -2,7 +2,7 @@ import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { DOMAINS } from "@/lib/constants"
+import { ASSESSMENT_DOMAINS } from "@/lib/constants"
 import { Progress } from "@/components/ui/progress"
 
 export const dynamic = "force-dynamic"
@@ -59,29 +59,60 @@ export default async function AnalyticsPage() {
     return <div>Error loading assessment data</div>
   }
 
+  // If no assessments, show a message
+  if (!assessments || assessments.length === 0) {
+    return (
+      <div className="container mx-auto py-10">
+        <h1 className="text-2xl font-bold mb-6">Analytics Dashboard</h1>
+        <Card>
+          <CardHeader>
+            <CardTitle>No Assessment Data Available</CardTitle>
+            <CardDescription>You need to complete assessments to see analytics.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>Go to your projects and start completing domain assessments.</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   // Get all scores for these assessments
-  const assessmentIds = assessments?.map((a) => a.id) || []
+  const assessmentIds = assessments.map((a) => a.id)
   const { data: scores, error: scoresError } = await supabase
-    .from("scores")
-    .select("id, assessment_id, domain_id, question_id, score, created_at")
+    .from("assessment_scores")
+    .select("id, assessment_id, domain, score, created_at")
     .in("assessment_id", assessmentIds)
 
   if (scoresError) {
-    console.error("Error fetching scores:", scoresError)
-    return <div>Error loading score data</div>
+    console.error("Error fetching scores:", scoresError.message, scoresError)
+
+    // Check if the table exists
+    const { data: tables, error: tablesError } = await supabase
+      .from("pg_tables")
+      .select("tablename")
+      .eq("schemaname", "public")
+
+    if (tablesError) {
+      console.error("Error checking tables:", tablesError)
+    } else {
+      console.log("Available tables:", tables)
+    }
+
+    return <div>Error loading score data: {scoresError.message}</div>
   }
 
   // Calculate domain averages
   const domainScores: Record<string, { total: number; count: number; avg: number }> = {}
 
-  DOMAINS.forEach((domain) => {
+  ASSESSMENT_DOMAINS.forEach((domain) => {
     domainScores[domain.id] = { total: 0, count: 0, avg: 0 }
   })
 
   scores?.forEach((score) => {
-    if (domainScores[score.domain_id]) {
-      domainScores[score.domain_id].total += score.score
-      domainScores[score.domain_id].count += 1
+    if (domainScores[score.domain]) {
+      domainScores[score.domain].total += score.score
+      domainScores[score.domain].count += 1
     }
   })
 
@@ -96,11 +127,11 @@ export default async function AnalyticsPage() {
   const completedAssessments =
     assessments?.filter((a) => {
       const assessmentScores = scores?.filter((s) => s.assessment_id === a.id) || []
-      const uniqueDomains = new Set(assessmentScores.map((s) => s.domain_id))
-      return uniqueDomains.size === DOMAINS.length
+      const uniqueDomains = new Set(assessmentScores.map((s) => s.domain))
+      return uniqueDomains.size === ASSESSMENT_DOMAINS.length
     }).length || 0
 
-  const totalQuestions = DOMAINS.reduce((sum, domain) => sum + domain.questions.length, 0)
+  const totalQuestions = ASSESSMENT_DOMAINS.reduce((sum, domain) => sum + domain.questionCount, 0)
   const answeredQuestions = scores?.length || 0
   const completionRate = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0
 
@@ -175,7 +206,7 @@ export default async function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {DOMAINS.map((domain) => {
+                  {ASSESSMENT_DOMAINS.map((domain) => {
                     const avgScore = domainScores[domain.id]?.avg || 0
                     return (
                       <div key={domain.id}>
@@ -199,16 +230,12 @@ export default async function AnalyticsPage() {
               <CardContent>
                 <div className="space-y-4">
                   {recentScores.map((score) => {
-                    const domain = DOMAINS.find((d) => d.id === score.domain_id)
-                    const question = domain?.questions.find((q) => q.id === score.question_id)
+                    const domain = ASSESSMENT_DOMAINS.find((d) => d.id === score.domain)
 
                     return (
                       <div key={score.id} className="flex items-center">
                         <div className="ml-4 space-y-1">
                           <p className="text-sm font-medium leading-none">{domain?.name || "Unknown Domain"}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {question?.text?.substring(0, 50) || "Unknown Question"}...
-                          </p>
                           <p className="text-xs text-muted-foreground">
                             Score: {score.score} • {new Date(score.created_at).toLocaleString()}
                           </p>
@@ -226,11 +253,11 @@ export default async function AnalyticsPage() {
 
         <TabsContent value="domains">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {DOMAINS.map((domain) => {
+            {ASSESSMENT_DOMAINS.map((domain) => {
               const domainScore = domainScores[domain.id]
               const avgScore = domainScore?.avg || 0
               const answeredCount = domainScore?.count || 0
-              const totalQuestions = domain.questions.length
+              const totalQuestions = domain.questionCount
               const completionPercent = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0
 
               return (
@@ -238,7 +265,7 @@ export default async function AnalyticsPage() {
                   <CardHeader>
                     <CardTitle>{domain.name}</CardTitle>
                     <CardDescription>
-                      {answeredCount} of {domain.questions.length} questions answered
+                      {answeredCount} of {domain.questionCount} questions answered
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -283,8 +310,9 @@ export default async function AnalyticsPage() {
               const projectScores =
                 scores?.filter((s) => projectAssessments.some((a) => a.id === s.assessment_id)) || []
 
-              const uniqueDomains = new Set(projectScores.map((s) => s.domain_id))
-              const completionPercent = DOMAINS.length > 0 ? (uniqueDomains.size / DOMAINS.length) * 100 : 0
+              const uniqueDomains = new Set(projectScores.map((s) => s.domain))
+              const completionPercent =
+                ASSESSMENT_DOMAINS.length > 0 ? (uniqueDomains.size / ASSESSMENT_DOMAINS.length) * 100 : 0
 
               // Calculate average score for this project
               let totalScore = 0
@@ -322,7 +350,7 @@ export default async function AnalyticsPage() {
                         <div className="flex items-center justify-between">
                           <div className="text-sm font-medium">Domains Assessed</div>
                           <div>
-                            {uniqueDomains.size} of {DOMAINS.length}
+                            {uniqueDomains.size} of {ASSESSMENT_DOMAINS.length}
                           </div>
                         </div>
                         <div className="mt-2 h-2 w-full rounded-full bg-gray-200">
