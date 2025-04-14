@@ -1,63 +1,63 @@
 "use client"
 
-import { useRef, useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { getScoreBackgroundColor, getScoreColor } from "@/lib/constants"
+import { Progress } from "@/components/ui/progress"
 import Chart from "chart.js/auto"
 
 interface DomainScore {
   id: string
   name: string
   score: number
-  completedQuestions: number
-  totalQuestions: number
-  progress: number
+  completion: number
 }
 
 interface ResultsOverviewProps {
   domainScores: DomainScore[]
-  overallScore: number
+  projectId: string
 }
 
-export default function ResultsOverview({ domainScores, overallScore }: ResultsOverviewProps) {
+export function ResultsOverview({ domainScores, projectId }: ResultsOverviewProps) {
   const chartRef = useRef<HTMLCanvasElement>(null)
   const chartInstance = useRef<Chart | null>(null)
 
-  // Filter out the "details" domain if it exists
-  const assessmentDomainScores = domainScores.filter((d) => d.id !== "details")
+  // Calculate overall score
+  const totalScore = domainScores.reduce((sum, domain) => sum + domain.score, 0)
+  const overallScore = domainScores.length > 0 ? Math.round((totalScore / domainScores.length) * 10) / 10 : 0
 
+  // Function to get color based on score
+  const getScoreColor = (score: number) => {
+    if (score < 3.5) return "rgb(239, 68, 68)" // Red
+    if (score < 7) return "rgb(245, 158, 11)" // Amber
+    return "rgb(34, 197, 94)" // Green
+  }
+
+  // Function to get background color with transparency
+  const getScoreBackgroundColor = (score: number) => {
+    if (score < 3.5) return "rgba(239, 68, 68, 0.7)" // Red with transparency
+    if (score < 7) return "rgba(245, 158, 11, 0.7)" // Amber with transparency
+    return "rgba(34, 197, 94, 0.7)" // Green with transparency
+  }
+
+  // Create chart when component mounts
   useEffect(() => {
-    if (!chartRef.current) return
-
-    // Destroy existing chart
-    if (chartInstance.current) {
-      chartInstance.current.destroy()
-    }
+    if (!chartRef.current || domainScores.length === 0) return
 
     const ctx = chartRef.current.getContext("2d")
     if (!ctx) return
 
-    // Prepare data for radar chart
-    const labels = assessmentDomainScores.map((d) => d.name)
-    const data = assessmentDomainScores.map((d) => d.score)
-
-    // Explicit RAG colors based on score ranges
-    const getChartColor = (score: number) => {
-      if (score < 3.5) return "rgba(239, 68, 68, 0.7)" // Red with transparency
-      if (score < 7) return "rgba(245, 158, 11, 0.7)" // Amber with transparency
-      return "rgba(34, 197, 94, 0.7)" // Green with transparency
+    // Destroy previous chart if it exists
+    if (chartInstance.current) {
+      chartInstance.current.destroy()
     }
 
-    const getBorderColor = (score: number) => {
-      if (score < 3.5) return "rgb(239, 68, 68)" // Red
-      if (score < 7) return "rgb(245, 158, 11)" // Amber
-      return "rgb(34, 197, 94)" // Green
-    }
+    // Prepare data for chart
+    const labels = domainScores.map((domain) => domain.name)
+    const data = domainScores.map((domain) => domain.score)
+    const backgroundColors = domainScores.map((domain) => getScoreBackgroundColor(domain.score))
+    const borderColors = domainScores.map((domain) => getScoreColor(domain.score))
 
-    const backgroundColors = assessmentDomainScores.map((d) => getChartColor(d.score))
-    const borderColors = assessmentDomainScores.map((d) => getBorderColor(d.score))
-
-    // Create radar chart
+    // Create chart
     chartInstance.current = new Chart(ctx, {
       type: "polarArea",
       data: {
@@ -73,9 +73,10 @@ export default function ResultsOverview({ domainScores, overallScore }: ResultsO
         ],
       },
       options: {
+        responsive: true,
         scales: {
           r: {
-            beginAtZero: true,
+            min: 0,
             max: 10,
             ticks: {
               stepSize: 2,
@@ -84,41 +85,37 @@ export default function ResultsOverview({ domainScores, overallScore }: ResultsO
         },
         plugins: {
           legend: {
-            display: false,
-          },
-          title: {
-            display: true,
-            text: "Impact Diagnostic Assessment",
-            font: {
-              size: 18,
-            },
-          },
-          tooltip: {
-            callbacks: {
-              label: (context) => {
-                const label = context.label || ""
-                const value = context.raw || 0
-                return `${label}: ${value.toFixed(1)}`
-              },
-            },
+            position: "bottom",
           },
         },
       },
     })
 
+    // Cleanup function
     return () => {
       if (chartInstance.current) {
         chartInstance.current.destroy()
       }
     }
-  }, [assessmentDomainScores])
+  }, [domainScores])
+
+  if (domainScores.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>No Results Available</CardTitle>
+          <CardDescription>Complete at least one assessment to see your results.</CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Impact Assessment Results</CardTitle>
-          <CardDescription>Overview of scores across all assessment domains</CardDescription>
+          <CardTitle>Domain Scores</CardTitle>
+          <CardDescription>Visual representation of your scores across all domains</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="aspect-square">
@@ -127,32 +124,52 @@ export default function ResultsOverview({ domainScores, overallScore }: ResultsO
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Overall Score</CardTitle>
-          <CardDescription>Average score across all completed domains</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center h-full">
-          <div className={`text-7xl font-bold ${getScoreColor(overallScore)} mb-4`}>{overallScore.toFixed(1)}</div>
-          <p className="text-muted-foreground text-center">out of 10 possible points</p>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle>Overall Score</CardTitle>
+            <CardDescription>Average score across all assessed domains</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-5xl font-bold text-center py-4" style={{ color: getScoreColor(overallScore) }}>
+              {overallScore.toFixed(1)}
+              <span className="text-base text-gray-500 ml-1">/ 10</span>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="mt-8 w-full">
-            <h4 className="font-medium mb-4">Domain Scores</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {assessmentDomainScores.map((domain) => (
-                <div
-                  key={domain.id}
-                  className="p-3 rounded-lg shadow-sm flex justify-between items-center"
-                  style={{ backgroundColor: getScoreBackgroundColor(domain.score) }}
-                >
-                  <span className="text-sm font-medium">{domain.name}</span>
-                  <span className={`text-lg font-bold ${getScoreColor(domain.score)}`}>{domain.score.toFixed(1)}</span>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle>Domain Breakdown</CardTitle>
+            <CardDescription>Individual scores for each domain</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {domainScores.map((domain) => (
+                <div key={domain.id} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">{domain.name}</span>
+                    <span className="font-bold" style={{ color: getScoreColor(domain.score) }}>
+                      {domain.score.toFixed(1)}
+                    </span>
+                  </div>
+                  <Progress
+                    value={domain.score * 10}
+                    className="h-2"
+                    style={
+                      {
+                        backgroundColor: "rgba(0,0,0,0.1)",
+                        "--progress-background": getScoreColor(domain.score),
+                      } as any
+                    }
+                  />
+                  <div className="text-xs text-gray-500 text-right">{domain.completion}% complete</div>
                 </div>
               ))}
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
