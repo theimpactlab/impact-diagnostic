@@ -34,31 +34,51 @@ export default async function ResultsPage({ params }: { params: { id: string } }
     return notFound()
   }
 
-  // Try to get scores from assessment_scores table first
-  let { data: assessmentScores, error: assessmentScoresError } = await supabase
-    .from("assessment_scores")
+  // Get the assessment for this project
+  const { data: assessments, error: assessmentError } = await supabase
+    .from("assessments")
     .select("*")
     .eq("project_id", params.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
 
-  // If that fails, try the scores table
-  if (assessmentScoresError || !assessmentScores || assessmentScores.length === 0) {
-    console.log("No data in assessment_scores table, trying scores table...")
-    const { data: scores, error: scoresError } = await supabase.from("scores").select("*").eq("project_id", params.id)
+  if (assessmentError) {
+    console.error("Error fetching assessment:", assessmentError)
+  }
 
-    if (scoresError) {
-      console.error("Error fetching scores:", scoresError)
-    } else if (scores && scores.length > 0) {
-      console.log("Found scores in scores table:", scores.length)
-      assessmentScores = scores
+  const assessmentId = assessments && assessments.length > 0 ? assessments[0].id : null
+
+  // Try to get scores from assessment_scores table first
+  let scores = []
+  if (assessmentId) {
+    const { data: assessmentScores, error: assessmentScoresError } = await supabase
+      .from("assessment_scores")
+      .select("*")
+      .eq("assessment_id", assessmentId)
+
+    if (assessmentScoresError) {
+      console.error("Error fetching assessment_scores:", assessmentScoresError)
+    } else if (assessmentScores && assessmentScores.length > 0) {
+      scores = assessmentScores
+    } else {
+      // If no data in assessment_scores, try the scores table
+      const { data: oldScores, error: oldScoresError } = await supabase
+        .from("scores")
+        .select("*")
+        .eq("assessment_id", assessmentId)
+
+      if (oldScoresError) {
+        console.error("Error fetching scores:", oldScoresError)
+      } else if (oldScores && oldScores.length > 0) {
+        scores = oldScores
+      }
     }
   }
 
   // Process scores by domain
   const domainScores = ASSESSMENT_DOMAINS.map((domain) => {
     // Filter scores for this domain
-    const domainScores = (assessmentScores || []).filter(
-      (score) => score.domain_id === domain.id || score.domain === domain.id,
-    )
+    const domainScores = scores.filter((score) => score.domain_id === domain.id || score.domain === domain.id)
 
     // Calculate average score for this domain
     let totalScore = 0
@@ -74,7 +94,7 @@ export default async function ResultsPage({ params }: { params: { id: string } }
     const averageScore = scoredQuestions > 0 ? Math.round((totalScore / scoredQuestions) * 10) / 10 : 0
 
     // Calculate completion percentage
-    const totalQuestions = domain.questions?.length || 1
+    const totalQuestions = domain.questionCount || 2 // Default to 2 if not specified
     const completionPercentage = Math.round((scoredQuestions / totalQuestions) * 100)
 
     return {
@@ -84,6 +104,7 @@ export default async function ResultsPage({ params }: { params: { id: string } }
       completion: completionPercentage,
       totalQuestions,
       scoredQuestions,
+      questionScores: domainScores,
     }
   })
 
@@ -93,7 +114,7 @@ export default async function ResultsPage({ params }: { params: { id: string } }
 
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Assessment Results</h1>
-        <DownloadResultsButton project={project} scores={assessmentScores || []} domains={ASSESSMENT_DOMAINS} />
+        <DownloadResultsButton project={project} domainScores={domainScores.filter((d) => d.scoredQuestions > 0)} />
       </div>
 
       <ResultsOverview domainScores={domainScores.filter((d) => d.scoredQuestions > 0)} projectId={params.id} />

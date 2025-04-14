@@ -1,18 +1,18 @@
 "use client"
 
-import { Progress } from "@/components/ui/progress"
-
 import { useState } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Progress } from "@/components/ui/progress"
 import { ASSESSMENT_DOMAINS } from "@/lib/constants"
 
 export function ProjectDataDebug() {
   const [projects, setProjects] = useState<any[]>([])
   const [selectedProject, setSelectedProject] = useState<string>("")
   const [projectData, setProjectData] = useState<any>(null)
+  const [assessments, setAssessments] = useState<any[]>([])
   const [assessmentScores, setAssessmentScores] = useState<any[]>([])
   const [scores, setScores] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -48,6 +48,7 @@ export function ProjectDataDebug() {
     setLoading(true)
     setError(null)
     setProjectData(null)
+    setAssessments([])
     setAssessmentScores([])
     setScores([])
 
@@ -63,28 +64,46 @@ export function ProjectDataDebug() {
 
       setProjectData(project)
 
-      // Get scores from assessment_scores table
-      const { data: assessmentScoresData, error: assessmentScoresError } = await supabase
-        .from("assessment_scores")
+      // Get assessments for this project
+      const { data: assessmentsData, error: assessmentsError } = await supabase
+        .from("assessments")
         .select("*")
         .eq("project_id", selectedProject)
+        .order("created_at", { ascending: false })
 
-      if (assessmentScoresError) {
-        console.error("Error fetching assessment_scores:", assessmentScoresError)
+      if (assessmentsError) {
+        console.error("Error fetching assessments:", assessmentsError)
       } else {
-        setAssessmentScores(assessmentScoresData || [])
+        setAssessments(assessmentsData || [])
       }
 
-      // Get scores from scores table
-      const { data: scoresData, error: scoresError } = await supabase
-        .from("scores")
-        .select("*")
-        .eq("project_id", selectedProject)
+      // If we have assessments, get scores
+      if (assessmentsData && assessmentsData.length > 0) {
+        const assessmentId = assessmentsData[0].id
 
-      if (scoresError) {
-        console.error("Error fetching scores:", scoresError)
-      } else {
-        setScores(scoresData || [])
+        // Get scores from assessment_scores table
+        const { data: assessmentScoresData, error: assessmentScoresError } = await supabase
+          .from("assessment_scores")
+          .select("*")
+          .eq("assessment_id", assessmentId)
+
+        if (assessmentScoresError) {
+          console.error("Error fetching assessment_scores:", assessmentScoresError)
+        } else {
+          setAssessmentScores(assessmentScoresData || [])
+        }
+
+        // Get scores from scores table
+        const { data: scoresData, error: scoresError } = await supabase
+          .from("scores")
+          .select("*")
+          .eq("assessment_id", assessmentId)
+
+        if (scoresError) {
+          console.error("Error fetching scores:", scoresError)
+        } else {
+          setScores(scoresData || [])
+        }
       }
     } catch (err: any) {
       setError(`Error running diagnostics: ${err.message}`)
@@ -144,15 +163,59 @@ export function ProjectDataDebug() {
                   <span className="font-bold">Name:</span> {projectData.name}
                 </div>
                 <div>
-                  <span className="font-bold">Organization:</span> {projectData.organizations?.name || "None"}
+                  <span className="font-bold">Organization:</span>{" "}
+                  {projectData.organizations?.name || projectData.organization_name || "None"}
                 </div>
                 <div>
                   <span className="font-bold">Created:</span> {new Date(projectData.created_at).toLocaleString()}
                 </div>
                 <div>
-                  <span className="font-bold">Owner ID:</span> {projectData.user_id}
+                  <span className="font-bold">Owner ID:</span> {projectData.owner_id}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Assessments</CardTitle>
+              <CardDescription>Assessments for this project</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {assessments.length === 0 ? (
+                <div className="text-amber-600">No assessments found for this project</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead>
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          ID
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Created At
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Updated At
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Created By
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {assessments.map((assessment) => (
+                        <tr key={assessment.id}>
+                          <td className="px-4 py-2 text-sm">{assessment.id}</td>
+                          <td className="px-4 py-2 text-sm">{new Date(assessment.created_at).toLocaleString()}</td>
+                          <td className="px-4 py-2 text-sm">{new Date(assessment.updated_at).toLocaleString()}</td>
+                          <td className="px-4 py-2 text-sm">{assessment.created_by}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -185,14 +248,14 @@ export function ProjectDataDebug() {
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {assessmentScores.map((score) => {
-                        const domain = ASSESSMENT_DOMAINS.find((d) => d.id === score.domain_id)
+                        const domain = ASSESSMENT_DOMAINS.find((d) => d.id === score.domain || d.id === score.domain_id)
                         const question = domain?.questions?.find((q) => q.id === score.question_id)
 
                         return (
                           <tr key={score.id}>
                             <td className="px-4 py-2 text-sm">{score.id}</td>
-                            <td className="px-4 py-2 text-sm">{domain?.name || score.domain_id}</td>
-                            <td className="px-4 py-2 text-sm">{question?.text || score.question_id}</td>
+                            <td className="px-4 py-2 text-sm">{domain?.name || score.domain || score.domain_id}</td>
+                            <td className="px-4 py-2 text-sm">{question?.question || score.question_id}</td>
                             <td className="px-4 py-2 text-sm">{score.score}</td>
                           </tr>
                         )
@@ -233,14 +296,18 @@ export function ProjectDataDebug() {
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {scores.map((score) => {
-                        const domain = ASSESSMENT_DOMAINS.find((d) => d.id === score.domain)
-                        const question = domain?.questions?.find((q) => q.id === score.question)
+                        const domain = ASSESSMENT_DOMAINS.find((d) => d.id === score.domain_id || d.id === score.domain)
+                        const question = domain?.questions?.find(
+                          (q) => q.id === score.question_id || q.id === score.question,
+                        )
 
                         return (
                           <tr key={score.id}>
                             <td className="px-4 py-2 text-sm">{score.id}</td>
-                            <td className="px-4 py-2 text-sm">{domain?.name || score.domain}</td>
-                            <td className="px-4 py-2 text-sm">{question?.text || score.question}</td>
+                            <td className="px-4 py-2 text-sm">{domain?.name || score.domain_id || score.domain}</td>
+                            <td className="px-4 py-2 text-sm">
+                              {question?.question || score.question_id || score.question}
+                            </td>
                             <td className="px-4 py-2 text-sm">{score.score}</td>
                           </tr>
                         )
@@ -262,9 +329,11 @@ export function ProjectDataDebug() {
                 {ASSESSMENT_DOMAINS.map((domain) => {
                   // Filter scores for this domain from both tables
                   const domainScoresFromAssessmentScores = assessmentScores.filter(
-                    (score) => score.domain_id === domain.id,
+                    (score) => score.domain === domain.id || score.domain_id === domain.id,
                   )
-                  const domainScoresFromScores = scores.filter((score) => score.domain === domain.id)
+                  const domainScoresFromScores = scores.filter(
+                    (score) => score.domain === domain.id || score.domain_id === domain.id,
+                  )
 
                   // Count questions with scores
                   const answeredQuestionsFromAssessmentScores = domainScoresFromAssessmentScores.filter(
@@ -278,7 +347,7 @@ export function ProjectDataDebug() {
                   const answeredQuestions = Math.max(answeredQuestionsFromAssessmentScores, answeredQuestionsFromScores)
 
                   // Calculate progress
-                  const totalQuestions = domain.questions?.length || 1
+                  const totalQuestions = domain.questionCount || 2
                   const progress = Math.round((answeredQuestions / totalQuestions) * 100)
 
                   return (
