@@ -20,7 +20,7 @@ export default function HomePage() {
                   Measure your organisation's social impact
                 </h1>
                 <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400 mt-4">
-                  The Impact Diagnostic Assessment helps organizations understand, measure, and improve their social
+                  The Impact Diagnostic Assessment helps organisations understand, measure, and improve their social
                   impact with comprehensive diagnostic tools.
                 </p>
               </div>
@@ -47,7 +47,7 @@ export default function HomePage() {
               </h2>
               <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl">
                 Impact Diagnostic Assessment provides all the tools you need to understand and improve your
-                organization's social impact.
+                organisation's social impact.
               </p>
             </div>
 
@@ -89,7 +89,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-xl font-bold mb-2">Get your results</h3>
                 <p className="text-gray-500">
-                  Receive a detailed analysis of your organization's impact measurement capabilities
+                  Receive a detailed analysis of your organisation's impact measurement capabilities
                 </p>
               </div>
 
@@ -112,7 +112,7 @@ export default function HomePage() {
                 Ready to improve your social impact?
               </h2>
               <p className="mx-auto max-w-[700px] md:text-xl">
-                Join organizations that are using the Impact Diagnostic Assessment to enhance their impact measurement
+                Join organisations that are using the Impact Diagnostic Assessment to enhance their impact measurement
                 capabilities.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mt-8">
