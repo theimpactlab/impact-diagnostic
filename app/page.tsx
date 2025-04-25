@@ -17,7 +17,7 @@ export default function HomePage() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2 max-w-3xl">
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
-                  Measure your organization's social impact
+                  Measure your organisation's social impact
                 </h1>
                 <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400 mt-4">
                   The Impact Diagnostic Assessment helps organizations understand, measure, and improve their social
