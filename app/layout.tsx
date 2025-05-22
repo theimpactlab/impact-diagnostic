@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { SessionProvider } from "@/components/providers/session-provider"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     template: "%s | Impact Diagnostic Assessment",
   },
   description: "Measure and improve your organization's social impact",
-    generator: 'v0.dev'
+  generator: "RM",
 }
 
 export default function RootLayout({
@@ -25,13 +26,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          {children}
+          <SessionProvider>{children}</SessionProvider>
           <Toaster />
         </ThemeProvider>
       </body>
     </html>
   )
 }
-
-
-import './globals.css'
