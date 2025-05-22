@@ -4,13 +4,13 @@ import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { supabase } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
+import { updatePassword } from "@/lib/actions/auth"
 import { useSession } from "@/components/providers/session-provider"
 
 const formSchema = z
@@ -27,7 +27,7 @@ const formSchema = z
     path: ["confirmPassword"],
   })
 
-export default function PasswordForm() {
+export default function PasswordFormWithAction() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { session, isLoading: sessionLoading } = useSession()
@@ -54,31 +54,27 @@ export default function PasswordForm() {
     setIsLoading(true)
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: values.newPassword,
-      })
+      const result = await updatePassword(values.newPassword)
 
-      if (error) throw error
-
-      toast({
-        title: "Password updated",
-        description: "Your password has been updated successfully.",
-      })
-
-      form.reset()
+      if (result.success) {
+        toast({
+          title: "Password updated",
+          description: "Your password has been updated successfully.",
+        })
+        form.reset()
+      } else {
+        throw new Error(result.error)
+      }
     } catch (error: any) {
       console.error("Error updating password:", error)
 
       // Check if it's an expired session error
-      if (error.message.includes("session") || error.message.includes("JWT")) {
+      if (error.message?.includes("session") || error.message?.includes("JWT") || error.message?.includes("auth")) {
         toast({
           title: "Session expired",
           description: "Your session has expired. Please log in again.",
           variant: "destructive",
         })
-
-        // Sign out and redirect to login
-        await supabase.auth.signOut()
         router.push("/login")
       } else {
         toast({
