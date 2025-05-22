@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -29,24 +29,6 @@ export default function ResetPasswordForm() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
-  // Check for session on component mount
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data, error } = await supabase.auth.getSession()
-
-      if (error || !data.session) {
-        toast({
-          title: "Session error",
-          description: "Please log in again to reset your password.",
-          variant: "destructive",
-        })
-        router.push("/login")
-      }
-    }
-
-    checkSession()
-  }, [router])
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -59,13 +41,6 @@ export default function ResetPasswordForm() {
     setIsLoading(true)
 
     try {
-      // Explicitly get the session first
-      const { data: sessionData } = await supabase.auth.getSession()
-
-      if (!sessionData.session) {
-        throw new Error("No active session found. Please log in again.")
-      }
-
       const { error } = await supabase.auth.updateUser({
         password: values.password,
       })
@@ -88,11 +63,6 @@ export default function ResetPasswordForm() {
         description: error.message || "Something went wrong. Please try again.",
         variant: "destructive",
       })
-
-      // If it's a session error, redirect to login
-      if (error.message.includes("session") || error.message.includes("auth")) {
-        router.push("/login")
-      }
     } finally {
       setIsLoading(false)
     }
