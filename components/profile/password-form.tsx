@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/hooks/use-toast"
+import { useRouter } from "next/navigation"
 
 const formSchema = z
   .object({
@@ -27,6 +28,25 @@ const formSchema = z
 
 export default function PasswordForm() {
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+
+  // Check for session on component mount
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data, error } = await supabase.auth.getSession()
+
+      if (error || !data.session) {
+        toast({
+          title: "Session error",
+          description: "Please log in again to change your password.",
+          variant: "destructive",
+        })
+        router.push("/login")
+      }
+    }
+
+    checkSession()
+  }, [router])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -40,7 +60,14 @@ export default function PasswordForm() {
     setIsLoading(true)
 
     try {
-      // Update the password directly without verifying the current password
+      // Explicitly get the session first
+      const { data: sessionData } = await supabase.auth.getSession()
+
+      if (!sessionData.session) {
+        throw new Error("No active session found. Please log in again.")
+      }
+
+      // Update the password
       const { error } = await supabase.auth.updateUser({
         password: values.newPassword,
       })
@@ -53,6 +80,9 @@ export default function PasswordForm() {
       })
 
       form.reset()
+
+      // Refresh the session
+      router.refresh()
     } catch (error: any) {
       console.error("Error updating password:", error)
       toast({
@@ -60,6 +90,11 @@ export default function PasswordForm() {
         description: error.message || "Failed to update password.",
         variant: "destructive",
       })
+
+      // If it's a session error, redirect to login
+      if (error.message.includes("session") || error.message.includes("auth")) {
+        router.push("/login")
+      }
     } finally {
       setIsLoading(false)
     }
