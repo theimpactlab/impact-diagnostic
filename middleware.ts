@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
 
-// Add "/admin" to the publicRoutes array to bypass middleware checks temporarily
 const publicRoutes = [
   "/",
   "/login",
@@ -17,6 +16,8 @@ const publicRoutes = [
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
+
+  // Create a Supabase client configured to use cookies
   const supabase = createMiddlewareClient({ req, res })
 
   // Check if the path is a public route
@@ -24,7 +25,7 @@ export async function middleware(req: NextRequest) {
     (route) => req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith("/auth/"),
   )
 
-  // Get the session
+  // Refresh session if it exists
   const {
     data: { session },
   } = await supabase.auth.getSession()
