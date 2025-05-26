@@ -1,40 +1,111 @@
-import { redirect } from "next/navigation"
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useToast } from "@/hooks/use-toast"
+import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
-import ForgotPasswordForm from "@/components/auth/forgot-password-form"
-import LandingNavbar from "@/components/landing/landing-navbar"
 
-export default async function ForgotPasswordPage() {
-  const supabase = createServerSupabaseClient()
+export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const { toast } = useToast()
+  const supabase = createClientComponentClient()
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setMessage(null)
 
-  if (session) {
-    redirect("/dashboard")
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+
+      if (error) {
+        setMessage({ type: "error", text: error.message })
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        })
+      } else {
+        setMessage({
+          type: "success",
+          text: "Check your email for a password reset link",
+        })
+        toast({
+          title: "Success",
+          description: "Check your email for a password reset link",
+        })
+        setEmail("")
+      }
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: "An unexpected error occurred. Please try again.",
+      })
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <LandingNavbar />
+    <div className="container max-w-md py-10">
+      <Button asChild variant="ghost" size="sm" className="mb-6">
+        <Link href="/login">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Login
+        </Link>
+      </Button>
 
-      <div className="container flex flex-1 w-full items-center justify-center py-12">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px]">
-          <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">Reset your password</h1>
-            <p className="text-sm text-muted-foreground">
-              Enter your email address and we'll send you a link to reset your password
-            </p>
-          </div>
-          <ForgotPasswordForm />
-          <p className="px-8 text-center text-sm text-muted-foreground">
-            <Link href="/login" className="hover:text-primary underline underline-offset-4">
-              Back to login
-            </Link>
-          </p>
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Forgot Password</CardTitle>
+          <CardDescription>Enter your email address and we'll send you a link to reset your password.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+              />
+            </div>
+
+            {message && (
+              <div
+                className={`p-3 rounded-md ${
+                  message.type === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
+                }`}
+              >
+                {message.text}
+              </div>
+            )}
+
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Sending..." : "Send Reset Link"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

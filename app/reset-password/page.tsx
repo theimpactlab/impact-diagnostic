@@ -1,33 +1,117 @@
-import { redirect } from "next/navigation"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
-import ResetPasswordForm from "@/components/auth/reset-password-form"
-import LandingNavbar from "@/components/landing/landing-navbar"
+"use client"
 
-export default async function ResetPasswordPage() {
-  const supabase = createServerSupabaseClient()
+import { useState } from "react"
+import { resetPassword } from "../actions/reset-password"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useToast } from "@/hooks/use-toast"
+import { ArrowLeft } from "lucide-react"
+import Link from "next/link"
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+export default function ResetPasswordPage() {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const { toast } = useToast()
 
-  // If no session, redirect to login
-  if (!session) {
-    redirect("/login")
+  async function handleSubmit(formData: FormData) {
+    setIsSubmitting(true)
+    setMessage(null)
+
+    try {
+      const result = await resetPassword(formData)
+
+      if (result.error) {
+        setMessage({ type: "error", text: result.error })
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        })
+      } else if (result.success) {
+        setMessage({ type: "success", text: result.success })
+        toast({
+          title: "Success",
+          description: result.success,
+        })
+
+        // Reset the form
+        const form = document.getElementById("reset-password-form") as HTMLFormElement
+        form.reset()
+      }
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: "An unexpected error occurred. Please try again.",
+      })
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <LandingNavbar />
+    <div className="container max-w-md py-10">
+      <Button asChild variant="ghost" size="sm" className="mb-6">
+        <Link href="/profile">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Profile
+        </Link>
+      </Button>
 
-      <div className="container flex flex-1 w-full items-center justify-center py-12">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px]">
-          <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">Set New Password</h1>
-            <p className="text-sm text-muted-foreground">Create a new password for your account</p>
-          </div>
-          <ResetPasswordForm />
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Reset Password</CardTitle>
+          <CardDescription>
+            Enter your new password below. You won't need to enter your current password.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form id="reset-password-form" action={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new_password">New Password</Label>
+              <Input
+                id="new_password"
+                name="new_password"
+                type="password"
+                required
+                minLength={8}
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm_password">Confirm New Password</Label>
+              <Input
+                id="confirm_password"
+                name="confirm_password"
+                type="password"
+                required
+                minLength={8}
+                autoComplete="new-password"
+              />
+            </div>
+
+            {message && (
+              <div
+                className={`p-3 rounded-md ${
+                  message.type === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
+                }`}
+              >
+                {message.text}
+              </div>
+            )}
+
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Updating..." : "Update Password"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   )
 }
