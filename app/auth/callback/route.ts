@@ -1,37 +1,24 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
-
-export const dynamic = "force-dynamic" // Important for authentication routes
+import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
-  const next = requestUrl.searchParams.get("next") || "/dashboard"
+  const next = requestUrl.searchParams.get("next") ?? "/reset-password"
 
-  if (!code) {
-    // If no code is provided, redirect to login
-    console.error("No code provided in auth callback")
-    return NextResponse.redirect(new URL("/login", request.url))
-  }
-
-  try {
+  if (code) {
     const cookieStore = cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
-    // Exchange the code for a session
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-
-    if (error) {
+    try {
+      await supabase.auth.exchangeCodeForSession(code)
+    } catch (error) {
       console.error("Error exchanging code for session:", error)
-      return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, request.url))
+      return NextResponse.redirect(new URL("/login?error=auth_error", request.url))
     }
-
-    // Successful authentication, redirect to the next page
-    return NextResponse.redirect(new URL(next, request.url))
-  } catch (error) {
-    console.error("Unexpected error in auth callback:", error)
-    return NextResponse.redirect(new URL("/login?error=unexpected_error", request.url))
   }
+
+  // Redirect to the password reset page or specified next URL
+  return NextResponse.redirect(new URL(next, request.url))
 }
