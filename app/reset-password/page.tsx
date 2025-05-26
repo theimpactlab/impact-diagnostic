@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { useState } from "react"
 import { resetPassword } from "../actions/reset-password"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,29 +12,8 @@ import Link from "next/link"
 
 export default function ResetPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
-  const supabase = createClientComponentClient()
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-        setIsAuthenticated(!!session)
-      } catch (error) {
-        console.error("Error checking auth:", error)
-        setIsAuthenticated(false)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkAuth()
-  }, [supabase])
 
   async function handleSubmit(formData: FormData) {
     setIsSubmitting(true)
@@ -55,6 +33,10 @@ export default function ResetPasswordPage() {
           description: "Your password has been updated successfully. Redirecting to dashboard...",
         })
 
+        // Reset the form
+        const form = document.getElementById("reset-password-form") as HTMLFormElement
+        form.reset()
+
         // Redirect to dashboard after successful password reset
         setTimeout(() => {
           router.push("/dashboard")
@@ -71,43 +53,6 @@ export default function ResetPasswordPage() {
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="container max-w-md py-10">
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center">Loading...</div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="container max-w-md py-10">
-        <Card>
-          <CardHeader>
-            <CardTitle>Authentication Required</CardTitle>
-            <CardDescription>
-              You need to be logged in to reset your password. Please check your email and click the reset link again.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Button asChild className="w-full">
-                <Link href="/login">Go to Login</Link>
-              </Button>
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/forgot-password">Send New Reset Link</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   return (
     <div className="container max-w-md py-10">
       <Card>
@@ -118,7 +63,7 @@ export default function ResetPasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={handleSubmit} className="space-y-4">
+          <form id="reset-password-form" action={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="new_password">New Password</Label>
               <Input

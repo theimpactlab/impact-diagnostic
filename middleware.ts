@@ -1,44 +1,55 @@
-import { auth } from "./auth"
-import { DEFAULT_LOGIN_REDIRECT, apiAuthPrefix, authRoutes, publicRoutes } from "./routes"
-
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 export async function middleware(req: NextRequest) {
-  const { nextUrl } = req
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req, res })
 
-  const isLoggedIn = !!(await auth())
+  // Refresh session if expired - required for Server Components
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
 
-  const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix)
-  const isPublicRoute = publicRoutes.includes(nextUrl.pathname)
-  const isAuthRoute = authRoutes.includes(nextUrl.pathname)
+  // Define public routes that don't require authentication
+  const publicRoutes = [
+    "/",
+    "/login",
+    "/signup",
+    "/forgot-password",
+    "/reset-password",
+    "/auth/callback",
+    "/api/auth/callback",
+  ]
 
-  if (isApiAuthRoute) {
-    return null
+  const isPublicRoute = publicRoutes.some(
+    (route) => req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith(route),
+  )
+
+  // Allow access to public routes and API routes
+  if (isPublicRoute || req.nextUrl.pathname.startsWith("/api/")) {
+    return res
   }
 
-  if (isAuthRoute) {
-    if (isLoggedIn) {
-      return NextResponse.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl))
-    }
-    return null
+  // Redirect to login if not authenticated and trying to access protected route
+  if (!session) {
+    const redirectUrl = new URL("/login", req.url)
+    redirectUrl.searchParams.set("redirectTo", req.nextUrl.pathname)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  if (!isLoggedIn && !isPublicRoute) {
-    let callbackUrl: string = nextUrl.pathname
-    if (nextUrl.search) {
-      callbackUrl += nextUrl.search
-    }
-
-    const encodedCallbackUrl = encodeURIComponent(callbackUrl)
-
-    return NextResponse.redirect(new URL(`/login?callbackUrl=${encodedCallbackUrl}`, nextUrl))
-  }
-
-  return null
+  return res
 }
 
-// Optionally, don't invoke Middleware on some paths
 export const config = {
-  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 }
