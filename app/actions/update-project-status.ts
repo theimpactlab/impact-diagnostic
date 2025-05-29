@@ -50,31 +50,53 @@ export async function updateProjectStatus(projectId: string, status: "active" | 
       }
     }
 
-    // Try to update the project status (without updated_at for now)
-    const { data, error } = await supabase
-      .from("projects")
-      .update({
-        status,
-      })
-      .eq("id", projectId)
-      .select()
+    // Try to update the project status
+    const updateData: any = { status }
+
+    // Try to include updated_at if the column exists
+    try {
+      updateData.updated_at = new Date().toISOString()
+    } catch (e) {
+      // If updated_at doesn't exist, just update status
+      console.log("updated_at column may not exist, updating status only")
+    }
+
+    const { data, error } = await supabase.from("projects").update(updateData).eq("id", projectId).select()
 
     if (error) {
       console.error("Error updating project status:", error)
 
-      // Check if it's a column doesn't exist error
-      if (error.message.includes("column") && error.message.includes("status")) {
+      // If updated_at column doesn't exist, try again without it
+      if (error.message.includes("updated_at")) {
+        console.log("Retrying without updated_at column...")
+        const { data: retryData, error: retryError } = await supabase
+          .from("projects")
+          .update({ status })
+          .eq("id", projectId)
+          .select()
+
+        if (retryError) {
+          return {
+            error: `Database error: ${retryError.message}`,
+          }
+        }
+
+        console.log("Successfully updated project (without updated_at):", retryData)
+      } else {
+        // Check if it's a column doesn't exist error
+        if (error.message.includes("column") && error.message.includes("status")) {
+          return {
+            error: "Database needs to be updated. The 'status' column doesn't exist in the projects table.",
+          }
+        }
+
         return {
-          error: "Database needs to be updated. The 'status' column doesn't exist in the projects table.",
+          error: `Database error: ${error.message}`,
         }
       }
-
-      return {
-        error: `Database error: ${error.message}`,
-      }
+    } else {
+      console.log("Successfully updated project:", data)
     }
-
-    console.log("Successfully updated project:", data)
 
     // Revalidate the analytics and dashboard pages
     revalidatePath("/analytics")

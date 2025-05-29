@@ -57,23 +57,31 @@ export async function addMissingColumns() {
   try {
     // Note: This won't work directly from the client due to RLS
     // This is just for reference - the user needs to run this in Supabase SQL editor
-    const sqlCommand = `
--- Add missing columns to projects table
+    const sqlCommand = `-- Add missing columns to projects table
 ALTER TABLE projects 
 ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active',
 ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
--- Add a check constraint to ensure valid status values
-ALTER TABLE projects 
-ADD CONSTRAINT IF NOT EXISTS projects_status_check 
-CHECK (status IN ('active', 'completed', 'on_hold'));
-
 -- Update existing projects to have 'active' status and current timestamp
 UPDATE projects 
-SET status = 'active', updated_at = NOW()
-WHERE status IS NULL OR updated_at IS NULL;
+SET status = COALESCE(status, 'active'), 
+    updated_at = COALESCE(updated_at, NOW());
 
--- Create a trigger to automatically update updated_at when a row is modified
+-- Add a check constraint to ensure valid status values (with proper error handling)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'projects_status_check' 
+        AND table_name = 'projects'
+    ) THEN
+        ALTER TABLE projects 
+        ADD CONSTRAINT projects_status_check 
+        CHECK (status IN ('active', 'completed', 'on_hold'));
+    END IF;
+END $$;
+
+-- Create a function to automatically update updated_at when a row is modified
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -82,13 +90,12 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Apply the trigger to the projects table
+-- Apply the trigger to the projects table (drop first if exists)
 DROP TRIGGER IF EXISTS update_projects_updated_at ON projects;
 CREATE TRIGGER update_projects_updated_at
     BEFORE UPDATE ON projects
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-    `
+    EXECUTE FUNCTION update_updated_at_column();`
 
     return {
       sqlCommand,
