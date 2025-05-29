@@ -1,7 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ExternalLink } from "lucide-react"
+import { ExternalLink } from 'lucide-react'
+import ProjectStatusManager from "@/components/projects/project-status-manager"
 
 interface AnalyticsData {
   projects: any[]
@@ -24,26 +25,14 @@ export default function ProjectsTable({ data }: ProjectsTableProps) {
     const averageScore =
       projectScores.length > 0 ? projectScores.reduce((sum, s) => sum + s.score, 0) / projectScores.length : 0
 
-    let status = "Not Started"
-    let statusColor = "secondary"
-
-    if (projectAssessments.length > 0) {
-      const completedAssessments = projectAssessments.filter((a) => a.updated_at !== a.created_at)
-      if (completedAssessments.length === projectAssessments.length) {
-        status = "Completed"
-        statusColor = "default"
-      } else {
-        status = "In Progress"
-        statusColor = "outline"
-      }
-    }
+    // Use the actual status from the database, default to 'active' if not set
+    const status = project.status || "active"
 
     return {
       ...project,
       assessmentCount: projectAssessments.length,
       averageScore,
       status,
-      statusColor,
     }
   })
 
@@ -61,7 +50,11 @@ export default function ProjectsTable({ data }: ProjectsTableProps) {
                 <h4 className="font-medium">{project.name}</h4>
                 <p className="text-sm text-muted-foreground">{project.organization_name}</p>
                 <div className="flex items-center gap-2">
-                  <Badge variant={project.statusColor as any}>{project.status}</Badge>
+                  <ProjectStatusManager
+                    projectId={project.id}
+                    currentStatus={project.status}
+                    projectName={project.name}
+                  />
                   <span className="text-xs text-muted-foreground">
                     {project.assessmentCount} assessment{project.assessmentCount !== 1 ? "s" : ""}
                   </span>

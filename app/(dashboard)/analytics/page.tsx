@@ -3,7 +3,7 @@ import { cookies } from "next/headers"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, BarChart3 } from "lucide-react"
+import { TrendingUp, BarChart3 } from 'lucide-react'
 import AnalyticsCharts from "@/components/analytics/analytics-charts"
 import MetricsCards from "@/components/analytics/metrics-cards"
 import ProjectsTable from "@/components/analytics/projects-table"
@@ -34,10 +34,10 @@ export default async function AnalyticsPage() {
     )
   }
 
-  // Get all projects the user has access to
+  // Get all projects the user has access to - include status field
   const { data: projects, error: projectsError } = await supabase
     .from("projects")
-    .select("id, name, created_at, organization_name")
+    .select("id, name, created_at, organization_name, status")
     .order("created_at", { ascending: false })
 
   if (projectsError) {

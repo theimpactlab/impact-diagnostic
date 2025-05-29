@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, Users, Target, BarChart3 } from "lucide-react"
+import { TrendingUp, Users, Target, BarChart3 } from 'lucide-react'
 
 interface AnalyticsData {
   projects: any[]
@@ -16,8 +16,8 @@ export default function MetricsCards({ data }: MetricsCardsProps) {
 
   // Calculate metrics
   const totalProjects = projects.length
+  const completedProjects = projects.filter((p) => p.status === "completed").length
   const totalAssessments = assessments.length
-  const completedAssessments = assessments.filter((a) => a.updated_at !== a.created_at).length
   const averageScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score.score, 0) / scores.length : 0
 
   const metrics = [
@@ -26,14 +26,14 @@ export default function MetricsCards({ data }: MetricsCardsProps) {
       value: totalProjects,
       description: "Active projects in your portfolio",
       icon: Target,
-      trend: "+12% from last month",
+      trend: `${completedProjects} completed`,
     },
     {
       title: "Assessments",
       value: totalAssessments,
       description: "Impact assessments conducted",
       icon: BarChart3,
-      trend: `${completedAssessments} completed`,
+      trend: `Across ${totalProjects} projects`,
     },
     {
       title: "Average Score",
