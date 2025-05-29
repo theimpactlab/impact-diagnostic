@@ -50,12 +50,11 @@ export async function updateProjectStatus(projectId: string, status: "active" | 
       }
     }
 
-    // Try to update the project status
+    // Try to update the project status (without updated_at for now)
     const { data, error } = await supabase
       .from("projects")
       .update({
         status,
-        updated_at: new Date().toISOString(),
       })
       .eq("id", projectId)
       .select()

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { checkDatabaseSetup, addStatusColumn } from "@/app/actions/setup-database"
+import { checkDatabaseSetup, addMissingColumns } from "@/app/actions/setup-database"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -21,7 +21,7 @@ export default function DatabaseSetup() {
       setSetupStatus(result)
 
       if (result.needsSetup) {
-        const sqlResult = await addStatusColumn()
+        const sqlResult = await addMissingColumns()
         setSqlCommand(sqlResult.sqlCommand || "")
       }
     } catch (error) {
@@ -63,7 +63,14 @@ export default function DatabaseSetup() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Database Setup Required</AlertTitle>
-                <AlertDescription>{setupStatus.error}</AlertDescription>
+                <AlertDescription>
+                  {setupStatus.error}
+                  {setupStatus.missingColumns && (
+                    <div className="mt-2">
+                      <strong>Missing columns:</strong> {setupStatus.missingColumns.join(", ")}
+                    </div>
+                  )}
+                </AlertDescription>
               </Alert>
             ) : (
               <Alert>
@@ -77,7 +84,7 @@ export default function DatabaseSetup() {
               <div className="space-y-2">
                 <h4 className="font-medium">Run this SQL command in your Supabase SQL Editor:</h4>
                 <div className="relative">
-                  <pre className="bg-gray-100 p-4 rounded-md text-sm overflow-x-auto">{sqlCommand}</pre>
+                  <pre className="bg-gray-100 p-4 rounded-md text-sm overflow-x-auto max-h-96">{sqlCommand}</pre>
                   <Button size="sm" variant="outline" className="absolute top-2 right-2" onClick={copySqlCommand}>
                     <Copy className="h-3 w-3" />
                   </Button>

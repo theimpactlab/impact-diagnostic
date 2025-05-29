@@ -14,27 +14,45 @@ export default function DebugStatusPage() {
       <Card>
         <CardHeader>
           <CardTitle>Manual Database Setup</CardTitle>
-          <CardDescription>If you need to manually add the status column to your projects table</CardDescription>
+          <CardDescription>If you need to manually add the missing columns to your projects table</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              If the automatic check doesn't work, you can manually run this SQL command in your Supabase SQL Editor:
+              Your projects table is missing the `status` and `updated_at` columns. Run this SQL command in your
+              Supabase SQL Editor:
             </p>
             <pre className="bg-gray-100 p-4 rounded-md text-sm overflow-x-auto">
-              {`-- Add status column to projects table
+              {`-- Add missing columns to projects table
 ALTER TABLE projects 
-ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active',
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
 -- Add a check constraint to ensure valid status values
 ALTER TABLE projects 
 ADD CONSTRAINT IF NOT EXISTS projects_status_check 
 CHECK (status IN ('active', 'completed', 'on_hold'));
 
--- Update existing projects to have 'active' status
+-- Update existing projects to have 'active' status and current timestamp
 UPDATE projects 
-SET status = 'active' 
-WHERE status IS NULL;`}
+SET status = 'active', updated_at = NOW()
+WHERE status IS NULL OR updated_at IS NULL;
+
+-- Create a trigger to automatically update updated_at when a row is modified
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Apply the trigger to the projects table
+DROP TRIGGER IF EXISTS update_projects_updated_at ON projects;
+CREATE TRIGGER update_projects_updated_at
+    BEFORE UPDATE ON projects
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();`}
             </pre>
           </div>
         </CardContent>
