@@ -21,8 +21,8 @@ interface DashboardNavProps {
   user: {
     id: string
     email: string
-    full_name?: string
-    avatar_url?: string
+    full_name?: string | null
+    avatar_url?: string | null
     is_super_user?: boolean
   }
 }
@@ -74,102 +74,98 @@ export default function DashboardNav({ user }: DashboardNavProps) {
   }, [user.id, user.is_super_user])
 
   return (
-    <nav className="border-b bg-background">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 justify-between">
-          <div className="flex">
-            <div className="flex flex-shrink-0 items-center">
-              <Link href="/dashboard" className="text-xl font-bold">
-                Impact Diagnostic Tool
-              </Link>
-            </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              {navigation.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
-                      isActive
-                        ? "border-primary text-primary"
-                        : "border-transparent text-muted-foreground hover:border-gray-300 hover:text-gray-700"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 mr-2" />
-                    {item.name}
-                    {item.name === "Admin" && (
-                      <Badge variant="secondary" className="ml-2">
-                        Admin
-                      </Badge>
-                    )}
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-          <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            <div className="flex items-center gap-4">
-              {isSuperUser && (
-                <Badge variant="default" className="flex items-center gap-1">
-                  <Shield className="h-3 w-3" />
-                  Super User
-                </Badge>
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      {user.avatar_url && (
-                        <AvatarImage
-                          src={user.avatar_url || "/placeholder.svg"}
-                          alt={user.full_name || user.email || "User avatar"}
-                        />
-                      )}
-                      <AvatarFallback>{user.full_name?.[0] || user.email?.[0] || "U"}</AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <div className="flex items-center justify-start gap-2 p-2">
-                    <div className="flex flex-col space-y-1 leading-none">
-                      {user.full_name && <p className="font-medium">{user.full_name}</p>}
-                      <p className="w-[200px] truncate text-sm text-muted-foreground">{user.email}</p>
-                    </div>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center">
-                      <UserIcon className="mr-2 h-4 w-4" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings" className="flex items-center">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  {isSuperUser && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin" className="flex items-center">
-                        <Shield className="mr-2 h-4 w-4" />
-                        Admin Dashboard
-                      </Link>
-                    </DropdownMenuItem>
+    <header className="sticky top-0 z-10 border-b bg-background">
+      <div className="container flex h-16 items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard" className="font-semibold">
+            Impact Diagnostic Tool
+          </Link>
+          <nav className="hidden md:flex gap-6">
+            {navigation.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
+                    isActive
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:border-gray-300 hover:text-gray-700"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 mr-2" />
+                  {item.name}
+                  {item.name === "Admin" && (
+                    <Badge variant="secondary" className="ml-2">
+                      Admin
+                    </Badge>
                   )}
-                  <DropdownMenuSeparator />
-                  <SignOutButton variant="ghost" className="w-full justify-start p-2">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
-                  </SignOutButton>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground hidden md:inline-block">{user.full_name || user.email}</span>
+            {isSuperUser && (
+              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                <Shield className="h-3 w-3" /> Admin
+              </span>
+            )}
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8">
+                  {user.avatar_url && (
+                    <AvatarImage
+                      src={user.avatar_url || "/placeholder.svg"}
+                      alt={user.full_name || user.email || "User avatar"}
+                    />
+                  )}
+                  <AvatarFallback>{user.full_name?.[0] || user.email?.[0] || "U"}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <div className="flex items-center justify-start gap-2 p-2">
+                <div className="flex flex-col space-y-1 leading-none">
+                  {user.full_name && <p className="font-medium">{user.full_name}</p>}
+                  <p className="w-[200px] truncate text-sm text-muted-foreground">{user.email}</p>
+                </div>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/profile" className="flex items-center">
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/settings" className="flex items-center">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
+              {isSuperUser && (
+                <DropdownMenuItem asChild>
+                  <Link href="/admin" className="flex items-center">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Admin Dashboard
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <SignOutButton variant="ghost" className="w-full justify-start p-2">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
+              </SignOutButton>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
-    </nav>
+    </header>
   )
 }

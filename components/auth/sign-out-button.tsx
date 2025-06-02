@@ -31,6 +31,7 @@ export default function SignOutButton({
     setIsSigningOut(true)
 
     try {
+      // First try the client-side sign out
       const { error } = await supabase.auth.signOut()
 
       if (error) {
@@ -45,24 +46,30 @@ export default function SignOutButton({
           title: "Signed out",
           description: "You have been successfully signed out.",
         })
+
         // Redirect to home page
         router.push("/")
         router.refresh()
       }
     } catch (error) {
       console.error("Unexpected error during sign out:", error)
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred.",
-        variant: "destructive",
-      })
+
+      // If client-side sign out fails, try redirecting to the API route
+      window.location.href = "/api/auth/signout"
     } finally {
       setIsSigningOut(false)
     }
   }
 
   return (
-    <Button variant={variant} size={size} className={className} onClick={handleSignOut} disabled={isSigningOut}>
+    <Button
+      variant={variant}
+      size={size}
+      className={className}
+      onClick={handleSignOut}
+      disabled={isSigningOut}
+      type="button"
+    >
       {children || (
         <>
           <LogOut className="mr-2 h-4 w-4" />
