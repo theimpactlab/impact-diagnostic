@@ -43,26 +43,12 @@ export default function SignupPage() {
 
       if (error) {
         console.error("Registration error:", error)
-
-        // Check if it's a database error
-        if (error.message.includes("Database error saving new user")) {
-          setMessage({
-            type: "error",
-            text: "Database error saving new user. Please contact an administrator to fix the auth setup.",
-          })
-          toast({
-            title: "Error creating account",
-            description: "Database error saving new user. The administrator needs to run the auth setup.",
-            variant: "destructive",
-          })
-        } else {
-          setMessage({ type: "error", text: error.message })
-          toast({
-            title: "Error creating account",
-            description: error.message,
-            variant: "destructive",
-          })
-        }
+        setMessage({ type: "error", text: error.message })
+        toast({
+          title: "Error creating account",
+          description: error.message,
+          variant: "destructive",
+        })
       } else {
         setMessage({
           type: "success",
@@ -158,16 +144,6 @@ export default function SignupPage() {
                 }`}
               >
                 {message.text}
-                {message.type === "error" && message.text.includes("Database error") && (
-                  <div className="mt-2 text-xs">
-                    <p>
-                      This is a database setup issue. Please contact an administrator to run the auth setup at{" "}
-                      <Link href="/admin/auth-setup" className="underline font-medium">
-                        /admin/auth-setup
-                      </Link>
-                    </p>
-                  </div>
-                )}
               </div>
             )}
 

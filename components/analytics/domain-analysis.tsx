@@ -22,7 +22,7 @@ const DOMAIN_MAPPING = {
   theory_of_change: "Impact focussed theory of change",
   measurement_framework: "Impact Measurement framework",
   status_of_data: "Status of Data",
-  system_capabilities: "System Capabilities",
+  systems_capabilities: "System Capabilities",
 }
 
 // Get display name for a domain
