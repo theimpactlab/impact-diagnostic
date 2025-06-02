@@ -42,8 +42,8 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Step 4: Create diagnostic helper functions
-CREATE OR REPLACE FUNCTION public.check_function_exists(function_name TEXT)
+-- Step 4: Create diagnostic helper functions (fixed parameter names)
+CREATE OR REPLACE FUNCTION public.check_function_exists(func_name TEXT)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -53,12 +53,12 @@ BEGIN
     SELECT 1 
     FROM pg_proc p 
     JOIN pg_namespace n ON p.pronamespace = n.oid 
-    WHERE n.nspname = 'public' AND p.proname = function_name
+    WHERE n.nspname = 'public' AND p.proname = func_name
   );
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.check_trigger_exists(trigger_name TEXT, table_name TEXT, schema_name TEXT)
+CREATE OR REPLACE FUNCTION public.check_trigger_exists(trig_name TEXT, tbl_name TEXT, schema_name TEXT)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -67,9 +67,9 @@ BEGIN
   RETURN EXISTS (
     SELECT 1 
     FROM information_schema.triggers 
-    WHERE trigger_name = $1 
-    AND event_object_table = $2 
-    AND event_object_schema = $3
+    WHERE trigger_name = trig_name
+    AND event_object_table = tbl_name
+    AND event_object_schema = schema_name
   );
 END;
 $$;
