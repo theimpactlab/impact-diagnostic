@@ -11,16 +11,19 @@ interface MetricsCardsProps {
   data: AnalyticsData
 }
 
-// Actual domains from your assessment
-const ASSESSMENT_DOMAINS = [
-  "Purpose Alignment",
-  "Purpose Statement",
-  "Leadership for Impact",
-  "Impact focussed theory of change",
-  "impact measurement framework",
-  "status of data",
-  "system capabilities",
-]
+// Domain mapping from database field names to display names
+const DOMAIN_MAPPING = {
+  purpose_alignment: "Purpose Alignment",
+  purpose_statement: "Purpose Statement",
+  leadership_for_impact: "Leadership for Impact",
+  theory_of_change: "Impact focussed theory of change",
+  measurement_framework: "Impact Measurement framework",
+  status_of_data: "Status of Data",
+  system_capabilities: "System Capabilities",
+}
+
+// Get all expected domains
+const EXPECTED_DOMAINS = Object.keys(DOMAIN_MAPPING)
 
 export default function MetricsCards({ data }: MetricsCardsProps) {
   const { projects, assessments, scores } = data
@@ -49,13 +52,8 @@ export default function MetricsCards({ data }: MetricsCardsProps) {
       : 0
 
   // Count how many of the assessment domains have been assessed
-  const assessedDomains = ASSESSMENT_DOMAINS.filter((domain) =>
-    completedScores.some(
-      (score) =>
-        score.domain &&
-        (score.domain.toLowerCase().includes(domain.toLowerCase()) ||
-          domain.toLowerCase().includes(score.domain.toLowerCase())),
-    ),
+  const assessedDomains = EXPECTED_DOMAINS.filter((domain) =>
+    completedScores.some((score) => score.domain === domain),
   ).length
 
   const metrics = [
@@ -83,7 +81,7 @@ export default function MetricsCards({ data }: MetricsCardsProps) {
     {
       title: "Domains Assessed",
       value: assessedDomains,
-      description: `Out of ${ASSESSMENT_DOMAINS.length} total domains`,
+      description: `Out of ${EXPECTED_DOMAINS.length} total domains`,
       icon: Users,
       trend: completedScores.length > 0 ? "From completed projects" : "No domains assessed yet",
     },

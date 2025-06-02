@@ -15,6 +15,22 @@ interface AnalyticsChartsProps {
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#FFC658"]
 
+// Domain mapping from database field names to display names
+const DOMAIN_MAPPING = {
+  purpose_alignment: "Purpose Alignment",
+  purpose_statement: "Purpose Statement",
+  leadership_for_impact: "Leadership for Impact",
+  theory_of_change: "Impact focussed theory of change",
+  measurement_framework: "Impact Measurement framework",
+  status_of_data: "Status of Data",
+  system_capabilities: "System Capabilities",
+}
+
+// Get display name for a domain
+const getDomainDisplayName = (domain: string): string => {
+  return DOMAIN_MAPPING[domain as keyof typeof DOMAIN_MAPPING] || domain
+}
+
 export default function AnalyticsCharts({ data }: AnalyticsChartsProps) {
   const { projects, assessments, scores } = data
 
@@ -41,7 +57,7 @@ export default function AnalyticsCharts({ data }: AnalyticsChartsProps) {
     projects: count,
   }))
 
-  // Domain scores data - using actual domains from database
+  // Domain scores data - using actual domains from database with display names
   const uniqueDomains = Array.from(new Set(completedScores.map((score) => score.domain))).filter(Boolean)
 
   const domainData = uniqueDomains
@@ -51,7 +67,7 @@ export default function AnalyticsCharts({ data }: AnalyticsChartsProps) {
         domainScores.length > 0 ? domainScores.reduce((sum, score) => sum + score.score, 0) / domainScores.length : 0
 
       return {
-        domain: domain,
+        domain: getDomainDisplayName(domain),
         averageScore: averageScore,
         count: domainScores.length,
       }
@@ -138,9 +154,9 @@ export default function AnalyticsCharts({ data }: AnalyticsChartsProps) {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={domainData} margin={{ bottom: 60 }}>
+              <BarChart data={domainData} margin={{ bottom: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="domain" angle={-45} textAnchor="end" height={80} fontSize={12} />
+                <XAxis dataKey="domain" angle={-45} textAnchor="end" height={100} fontSize={11} />
                 <YAxis domain={[0, 5]} />
                 <Tooltip />
                 <Bar dataKey="averageScore" fill="#82ca9d" />
