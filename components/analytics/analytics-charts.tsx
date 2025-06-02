@@ -15,17 +15,6 @@ interface AnalyticsChartsProps {
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#FFC658"]
 
-// Actual domains from your assessment
-const ASSESSMENT_DOMAINS = [
-  "Purpose Alignment",
-  "Purpose Statement",
-  "Leadership for Impact",
-  "Impact focussed theory of change",
-  "impact measurement framework",
-  "status of data",
-  "system capabilities",
-]
-
 export default function AnalyticsCharts({ data }: AnalyticsChartsProps) {
   const { projects, assessments, scores } = data
 
@@ -52,25 +41,22 @@ export default function AnalyticsCharts({ data }: AnalyticsChartsProps) {
     projects: count,
   }))
 
-  // Domain scores data - using predefined domains
-  const domainData = ASSESSMENT_DOMAINS.map((domain) => {
-    // Match domain names (case-insensitive and flexible matching)
-    const domainScores = completedScores.filter(
-      (score) =>
-        score.domain &&
-        (score.domain.toLowerCase().includes(domain.toLowerCase()) ||
-          domain.toLowerCase().includes(score.domain.toLowerCase())),
-    )
+  // Domain scores data - using actual domains from database
+  const uniqueDomains = Array.from(new Set(completedScores.map((score) => score.domain))).filter(Boolean)
 
-    const averageScore =
-      domainScores.length > 0 ? domainScores.reduce((sum, score) => sum + score.score, 0) / domainScores.length : 0
+  const domainData = uniqueDomains
+    .map((domain) => {
+      const domainScores = completedScores.filter((score) => score.domain === domain)
+      const averageScore =
+        domainScores.length > 0 ? domainScores.reduce((sum, score) => sum + score.score, 0) / domainScores.length : 0
 
-    return {
-      domain: domain,
-      averageScore: averageScore,
-      count: domainScores.length,
-    }
-  }).filter((item) => item.count > 0) // Only show domains with data
+      return {
+        domain: domain,
+        averageScore: averageScore,
+        count: domainScores.length,
+      }
+    })
+    .filter((item) => item.count > 0) // Only show domains with data
 
   // Organization distribution
   const orgDistribution = completedProjects.reduce((acc, project) => {

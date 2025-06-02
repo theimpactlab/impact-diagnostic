@@ -3,12 +3,11 @@ import { cookies } from "next/headers"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, BarChart3 } from "lucide-react"
+import { TrendingUp, BarChart3, AlertCircle } from "lucide-react"
 import AnalyticsCharts from "@/components/analytics/analytics-charts"
 import MetricsCards from "@/components/analytics/metrics-cards"
 import ProjectsTable from "@/components/analytics/projects-table"
 import DomainAnalysis from "@/components/analytics/domain-analysis"
-import DataDebug from "@/components/analytics/data-debug"
 import ExportButton from "@/components/analytics/export-button"
 
 export const dynamic = "force-dynamic"
@@ -83,12 +82,16 @@ export default async function AnalyticsPage() {
     .select("id, project_id, created_at, updated_at")
     .in("project_id", projectIds)
 
-  // Get all scores for these assessments
+  // Get all scores from assessment_scores table for these assessments
   const assessmentIds = assessments?.map((a) => a.id) || []
   const { data: scores, error: scoresError } = await supabase
-    .from("scores")
+    .from("assessment_scores")
     .select("assessment_id, domain, score, created_at")
     .in("assessment_id", assessmentIds)
+
+  if (scoresError) {
+    console.error("Error fetching scores:", scoresError)
+  }
 
   const analyticsData = {
     projects: projects || [],
@@ -96,8 +99,9 @@ export default async function AnalyticsPage() {
     scores: scores || [],
   }
 
-  // Count completed projects
+  // Count completed projects and scores
   const completedProjects = projects.filter((p) => p.status === "completed").length
+  const totalScores = scores?.length || 0
 
   return (
     <div className="container mx-auto py-10 space-y-8">
@@ -109,47 +113,43 @@ export default async function AnalyticsPage() {
         <ExportButton data={analyticsData} />
       </div>
 
+      {/* Show alert if no scores exist */}
+      {totalScores === 0 && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-800">
+              <AlertCircle className="h-5 w-5" />
+              Assessment Scores Needed
+            </CardTitle>
+            <CardDescription className="text-amber-700">
+              You have {projects.length} projects and {assessments?.length || 0} assessments, but no scores have been
+              recorded yet.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-amber-700">
+              Complete your assessment questionnaires to see detailed analytics and domain performance insights.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <MetricsCards data={analyticsData} />
 
-      <Tabs defaultValue="debug" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="debug">Debug</TabsTrigger>
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="domains">Domain Analysis</TabsTrigger>
           <TabsTrigger value="projects">Projects</TabsTrigger>
           <TabsTrigger value="trends">Trends</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="debug" className="space-y-6">
-          <DataDebug data={analyticsData} />
-        </TabsContent>
-
         <TabsContent value="overview" className="space-y-6">
           <AnalyticsCharts data={analyticsData} />
         </TabsContent>
 
         <TabsContent value="domains" className="space-y-6">
-          {completedProjects === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <div className="text-center space-y-4">
-                  <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground" />
-                  <div>
-                    <h3 className="text-lg font-medium">No Completed Projects</h3>
-                    <p className="text-muted-foreground">
-                      Domain analysis is available for completed projects only. Mark projects as completed to see domain
-                      analysis.
-                    </p>
-                  </div>
-                  <Button asChild variant="outline">
-                    <a href="/projects">Manage Projects</a>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <DomainAnalysis data={analyticsData} />
-          )}
+          <DomainAnalysis data={analyticsData} />
         </TabsContent>
 
         <TabsContent value="projects" className="space-y-6">
