@@ -11,6 +11,17 @@ interface MetricsCardsProps {
   data: AnalyticsData
 }
 
+// Actual domains from your assessment
+const ASSESSMENT_DOMAINS = [
+  "Purpose Alignment",
+  "Purpose Statement",
+  "Leadership for Impact",
+  "Impact focussed theory of change",
+  "impact measurement framework",
+  "status of data",
+  "system capabilities",
+]
+
 export default function MetricsCards({ data }: MetricsCardsProps) {
   const { projects, assessments, scores } = data
 
@@ -37,8 +48,15 @@ export default function MetricsCards({ data }: MetricsCardsProps) {
       ? completedScores.reduce((sum, score) => sum + score.score, 0) / completedScores.length
       : 0
 
-  // Get unique domains from completed scores
-  const uniqueDomains = Array.from(new Set(completedScores.map((score) => score.domain)))
+  // Count how many of the assessment domains have been assessed
+  const assessedDomains = ASSESSMENT_DOMAINS.filter((domain) =>
+    completedScores.some(
+      (score) =>
+        score.domain &&
+        (score.domain.toLowerCase().includes(domain.toLowerCase()) ||
+          domain.toLowerCase().includes(score.domain.toLowerCase())),
+    ),
+  ).length
 
   const metrics = [
     {
@@ -64,8 +82,8 @@ export default function MetricsCards({ data }: MetricsCardsProps) {
     },
     {
       title: "Domains Assessed",
-      value: uniqueDomains.length,
-      description: "Unique assessment domains",
+      value: assessedDomains,
+      description: `Out of ${ASSESSMENT_DOMAINS.length} total domains`,
       icon: Users,
       trend: completedScores.length > 0 ? "From completed projects" : "No domains assessed yet",
     },

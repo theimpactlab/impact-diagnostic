@@ -12,6 +12,17 @@ interface DomainAnalysisProps {
   data: AnalyticsData
 }
 
+// Actual domains from your assessment
+const ASSESSMENT_DOMAINS = [
+  "Purpose Alignment",
+  "Purpose Statement",
+  "Leadership for Impact",
+  "Impact focussed theory of change",
+  "impact measurement framework",
+  "status of data",
+  "system capabilities",
+]
+
 export default function DomainAnalysis({ data }: DomainAnalysisProps) {
   const { projects, assessments, scores } = data
 
@@ -26,12 +37,15 @@ export default function DomainAnalysis({ data }: DomainAnalysisProps) {
   // Get scores for completed assessments
   const completedScores = scores.filter((score) => completedAssessmentIds.includes(score.assessment_id))
 
-  // Extract unique domains from the scores data
-  const uniqueDomains = Array.from(new Set(completedScores.map((score) => score.domain)))
+  // Calculate domain statistics using the predefined domains
+  const domainStats = ASSESSMENT_DOMAINS.map((domain) => {
+    // Match domain names (case-insensitive and flexible matching)
+    const domainScores = completedScores.filter(
+      (score) =>
+        (score.domain && score.domain.toLowerCase().includes(domain.toLowerCase())) ||
+        domain.toLowerCase().includes(score.domain?.toLowerCase() || ""),
+    )
 
-  // Calculate domain statistics
-  const domainStats = uniqueDomains.map((domain) => {
-    const domainScores = completedScores.filter((score) => score.domain === domain)
     const averageScore =
       domainScores.length > 0 ? domainScores.reduce((sum, s) => sum + s.score, 0) / domainScores.length : 0
     const assessmentCount = domainScores.length
@@ -65,18 +79,49 @@ export default function DomainAnalysis({ data }: DomainAnalysisProps) {
     }
   })
 
+  // Get actual domains from scores for debugging
+  const actualDomains = Array.from(new Set(completedScores.map((score) => score.domain))).filter(Boolean)
+
   return (
     <div className="space-y-6">
+      {/* Debug info - remove this in production */}
+      {actualDomains.length > 0 && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="text-blue-800">Debug: Actual Domains Found</CardTitle>
+            <CardDescription className="text-blue-600">
+              These are the domains found in your assessment data:
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {actualDomains.map((domain, index) => (
+                <Badge key={index} variant="outline" className="text-blue-700 border-blue-300">
+                  {domain}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Domain Performance Overview</CardTitle>
-          <CardDescription>Analysis of your performance across all domains for completed projects only</CardDescription>
+          <CardDescription>
+            Analysis of your performance across all assessment domains for completed projects only
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {domainStats.length === 0 ? (
+          {completedProjects.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>No domain data available for completed projects</p>
-              <p className="text-sm mt-2">Complete some projects to see domain analysis</p>
+              <p>No completed projects available</p>
+              <p className="text-sm mt-2">Mark some projects as completed to see domain analysis</p>
+            </div>
+          ) : completedScores.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No assessment scores found for completed projects</p>
+              <p className="text-sm mt-2">Complete assessments for your projects to see domain analysis</p>
             </div>
           ) : (
             <div className="space-y-6">

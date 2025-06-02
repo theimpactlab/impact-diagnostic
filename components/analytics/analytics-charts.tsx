@@ -15,6 +15,17 @@ interface AnalyticsChartsProps {
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#FFC658"]
 
+// Actual domains from your assessment
+const ASSESSMENT_DOMAINS = [
+  "Purpose Alignment",
+  "Purpose Statement",
+  "Leadership for Impact",
+  "Impact focussed theory of change",
+  "impact measurement framework",
+  "status of data",
+  "system capabilities",
+]
+
 export default function AnalyticsCharts({ data }: AnalyticsChartsProps) {
   const { projects, assessments, scores } = data
 
@@ -41,26 +52,25 @@ export default function AnalyticsCharts({ data }: AnalyticsChartsProps) {
     projects: count,
   }))
 
-  // Domain scores data - using actual domains from scores
-  const uniqueDomains = Array.from(new Set(completedScores.map((score) => score.domain)))
+  // Domain scores data - using predefined domains
+  const domainData = ASSESSMENT_DOMAINS.map((domain) => {
+    // Match domain names (case-insensitive and flexible matching)
+    const domainScores = completedScores.filter(
+      (score) =>
+        score.domain &&
+        (score.domain.toLowerCase().includes(domain.toLowerCase()) ||
+          domain.toLowerCase().includes(score.domain.toLowerCase())),
+    )
 
-  const domainScores = uniqueDomains.reduce(
-    (acc, domain) => {
-      const domainScores = completedScores.filter((score) => score.domain === domain)
-      acc[domain] = {
-        domain,
-        totalScore: domainScores.reduce((sum, score) => sum + score.score, 0),
-        count: domainScores.length,
-      }
-      return acc
-    },
-    {} as Record<string, { domain: string; totalScore: number; count: number }>,
-  )
+    const averageScore =
+      domainScores.length > 0 ? domainScores.reduce((sum, score) => sum + score.score, 0) / domainScores.length : 0
 
-  const domainData = Object.values(domainScores).map((domain) => ({
-    domain: domain.domain,
-    averageScore: domain.count > 0 ? domain.totalScore / domain.count : 0,
-  }))
+    return {
+      domain: domain,
+      averageScore: averageScore,
+      count: domainScores.length,
+    }
+  }).filter((item) => item.count > 0) // Only show domains with data
 
   // Organization distribution
   const orgDistribution = completedProjects.reduce((acc, project) => {
@@ -138,13 +148,13 @@ export default function AnalyticsCharts({ data }: AnalyticsChartsProps) {
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Average Scores by Domain</CardTitle>
-            <CardDescription>Performance across different domains in completed projects</CardDescription>
+            <CardDescription>Performance across assessment domains in completed projects</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={domainData}>
+              <BarChart data={domainData} margin={{ bottom: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="domain" />
+                <XAxis dataKey="domain" angle={-45} textAnchor="end" height={80} fontSize={12} />
                 <YAxis domain={[0, 5]} />
                 <Tooltip />
                 <Bar dataKey="averageScore" fill="#82ca9d" />
