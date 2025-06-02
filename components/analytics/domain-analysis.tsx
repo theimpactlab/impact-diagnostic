@@ -196,7 +196,7 @@ export default function DomainAnalysis({ data }: DomainAnalysisProps) {
       assessmentCount,
       performance,
       color,
-      progress: (averageScore / 5) * 100,
+      progress: (averageScore / 10) * 100,
     }
   })
 
