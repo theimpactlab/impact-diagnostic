@@ -3,7 +3,7 @@ import { cookies } from "next/headers"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { TrendingUp, BarChart3 } from 'lucide-react'
+import { TrendingUp, BarChart3 } from "lucide-react"
 import AnalyticsCharts from "@/components/analytics/analytics-charts"
 import MetricsCards from "@/components/analytics/metrics-cards"
 import ProjectsTable from "@/components/analytics/projects-table"
@@ -34,7 +34,7 @@ export default async function AnalyticsPage() {
     )
   }
 
-  // Get all projects the user has access to - include status field
+  // Get all projects with status
   const { data: projects, error: projectsError } = await supabase
     .from("projects")
     .select("id, name, created_at, organization_name, status")
@@ -95,6 +95,9 @@ export default async function AnalyticsPage() {
     scores: scores || [],
   }
 
+  // Count completed projects
+  const completedProjects = projects.filter((p) => p.status === "completed").length
+
   return (
     <div className="container mx-auto py-10 space-y-8">
       <div className="flex justify-between items-center">
@@ -120,7 +123,27 @@ export default async function AnalyticsPage() {
         </TabsContent>
 
         <TabsContent value="domains" className="space-y-6">
-          <DomainAnalysis data={analyticsData} />
+          {completedProjects === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <div className="text-center space-y-4">
+                  <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <div>
+                    <h3 className="text-lg font-medium">No Completed Projects</h3>
+                    <p className="text-muted-foreground">
+                      Domain analysis is available for completed projects only. Mark projects as completed to see domain
+                      analysis.
+                    </p>
+                  </div>
+                  <Button asChild variant="outline">
+                    <a href="/projects">Manage Projects</a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <DomainAnalysis data={analyticsData} />
+          )}
         </TabsContent>
 
         <TabsContent value="projects" className="space-y-6">

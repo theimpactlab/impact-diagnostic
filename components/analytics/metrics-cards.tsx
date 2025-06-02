@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, Users, Target, BarChart3 } from 'lucide-react'
+import { TrendingUp, Users, Target, BarChart3 } from "lucide-react"
 
 interface AnalyticsData {
   projects: any[]
@@ -14,40 +14,60 @@ interface MetricsCardsProps {
 export default function MetricsCards({ data }: MetricsCardsProps) {
   const { projects, assessments, scores } = data
 
+  // Get completed projects only
+  const completedProjects = projects.filter((project) => project.status === "completed")
+  const completedProjectIds = completedProjects.map((project) => project.id)
+
+  // Get assessments for completed projects
+  const completedAssessments = assessments.filter((assessment) => completedProjectIds.includes(assessment.project_id))
+  const completedAssessmentIds = completedAssessments.map((assessment) => assessment.id)
+
+  // Get scores for completed assessments
+  const completedScores = scores.filter((score) => completedAssessmentIds.includes(score.assessment_id))
+
   // Calculate metrics
   const totalProjects = projects.length
-  const completedProjects = projects.filter((p) => p.status === "completed").length
+  const completedProjectsCount = completedProjects.length
   const totalAssessments = assessments.length
-  const averageScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score.score, 0) / scores.length : 0
+  const completedAssessmentsCount = completedAssessments.length
+
+  // Calculate average score for completed projects only
+  const averageScore =
+    completedScores.length > 0
+      ? completedScores.reduce((sum, score) => sum + score.score, 0) / completedScores.length
+      : 0
+
+  // Get unique domains from completed scores
+  const uniqueDomains = Array.from(new Set(completedScores.map((score) => score.domain)))
 
   const metrics = [
     {
       title: "Total Projects",
       value: totalProjects,
-      description: "Active projects in your portfolio",
+      description: `${completedProjectsCount} completed`,
       icon: Target,
-      trend: `${completedProjects} completed`,
+      trend: `${projects.filter((p) => p.status === "active").length} active`,
     },
     {
       title: "Assessments",
       value: totalAssessments,
-      description: "Impact assessments conducted",
+      description: `${completedAssessmentsCount} in completed projects`,
       icon: BarChart3,
       trend: `Across ${totalProjects} projects`,
     },
     {
       title: "Average Score",
       value: averageScore.toFixed(1),
-      description: "Across all domains",
+      description: "In completed projects",
       icon: TrendingUp,
-      trend: scores.length > 0 ? "Based on current data" : "No scores yet",
+      trend: completedScores.length > 0 ? `Based on ${completedScores.length} scores` : "No scores yet",
     },
     {
-      title: "Organizations",
-      value: new Set(projects.map((p) => p.organization_name)).size,
-      description: "Unique organizations",
+      title: "Domains Assessed",
+      value: uniqueDomains.length,
+      description: "Unique assessment domains",
       icon: Users,
-      trend: "Across all projects",
+      trend: completedScores.length > 0 ? "From completed projects" : "No domains assessed yet",
     },
   ]
 
