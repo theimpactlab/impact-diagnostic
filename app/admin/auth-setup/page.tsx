@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { diagnoseAuthSetup, fixAuthSetup, testUserCreation } from "@/app/actions/diagnose-auth"
+import { getSimpleAuthFix } from "@/app/actions/simple-auth-fix"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -106,6 +107,23 @@ export default function AuthSetupPage() {
     if (status === true) return <Badge className="bg-green-100 text-green-800">OK</Badge>
     if (status === false) return <Badge variant="destructive">FAILED</Badge>
     return <Badge variant="secondary">UNKNOWN</Badge>
+  }
+
+  const generateSimpleFix = async () => {
+    try {
+      const result = await getSimpleAuthFix()
+      setSqlScript(result.sqlScript)
+      toast({
+        title: "Simple Fix Script Generated",
+        description: "This script will fix all auth issues. Copy and run in Supabase SQL Editor.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate simple fix script",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -228,9 +246,14 @@ export default function AuthSetupPage() {
           <CardDescription>Generate a comprehensive SQL script to fix all authentication setup issues</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button onClick={generateFixScript} variant="outline">
-            Generate Complete Fix Script
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={generateSimpleFix} className="flex-1">
+              Generate Simple Fix Script
+            </Button>
+            <Button onClick={generateFixScript} variant="outline" className="flex-1">
+              Generate Advanced Fix
+            </Button>
+          </div>
 
           {sqlScript && (
             <div className="space-y-4">
