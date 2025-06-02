@@ -8,6 +8,7 @@ import AnalyticsCharts from "@/components/analytics/analytics-charts"
 import MetricsCards from "@/components/analytics/metrics-cards"
 import ProjectsTable from "@/components/analytics/projects-table"
 import DomainAnalysis from "@/components/analytics/domain-analysis"
+import DataDebug from "@/components/analytics/data-debug"
 import ExportButton from "@/components/analytics/export-button"
 
 export const dynamic = "force-dynamic"
@@ -110,13 +111,18 @@ export default async function AnalyticsPage() {
 
       <MetricsCards data={analyticsData} />
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="debug" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="debug">Debug</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="domains">Domain Analysis</TabsTrigger>
           <TabsTrigger value="projects">Projects</TabsTrigger>
           <TabsTrigger value="trends">Trends</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="debug" className="space-y-6">
+          <DataDebug data={analyticsData} />
+        </TabsContent>
 
         <TabsContent value="overview" className="space-y-6">
           <AnalyticsCharts data={analyticsData} />
