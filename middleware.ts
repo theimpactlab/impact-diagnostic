@@ -20,6 +20,7 @@ export async function middleware(req: NextRequest) {
     "/reset-password",
     "/auth/callback",
     "/api/auth/callback",
+    "/api/auth/signout",
   ]
 
   const isPublicRoute = publicRoutes.some(

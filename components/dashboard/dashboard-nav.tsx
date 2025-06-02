@@ -11,10 +11,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Shield, UserIcon, Settings, LogOut, BarChart3, FolderOpen, Home } from "lucide-react"
 import { useEffect, useState } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import SignOutButton from "@/components/auth/sign-out-button"
 
 interface DashboardNavProps {
   user: {
@@ -39,11 +40,6 @@ export default function DashboardNav({ user }: DashboardNavProps) {
   // Add admin link if user is super user
   if (isSuperUser) {
     navigation.push({ name: "Admin", href: "/admin", icon: Shield })
-  }
-
-  const handleSignOut = async () => {
-    // This would typically call a sign out function
-    window.location.href = "/api/auth/signout"
   }
 
   useEffect(() => {
@@ -125,6 +121,12 @@ export default function DashboardNav({ user }: DashboardNavProps) {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
+                      {user.avatar_url && (
+                        <AvatarImage
+                          src={user.avatar_url || "/placeholder.svg"}
+                          alt={user.full_name || user.email || "User avatar"}
+                        />
+                      )}
                       <AvatarFallback>{user.full_name?.[0] || user.email?.[0] || "U"}</AvatarFallback>
                     </Avatar>
                   </Button>
@@ -158,10 +160,10 @@ export default function DashboardNav({ user }: DashboardNavProps) {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
+                  <SignOutButton variant="ghost" className="w-full justify-start p-2">
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign out
-                  </DropdownMenuItem>
+                  </SignOutButton>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
