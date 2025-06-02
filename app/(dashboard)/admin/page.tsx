@@ -1,17 +1,19 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, Shield } from "lucide-react"
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import UsersManagement from "@/components/admin/users-management"
+import OrganizationsManagement from "@/components/admin/organizations-management"
+import ProjectsManagement from "@/components/admin/projects-management"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export const dynamic = "force-dynamic"
-export const revalidate = 0
 
 export default async function AdminPage() {
-  const supabase = createServerComponentClient({ cookies })
+  // Create a Supabase client
+  const cookieStore = cookies()
+  const supabase = createServerComponentClient({ cookies: () => cookieStore })
 
-  // Get the current user's session
+  // Get the session
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -20,130 +22,133 @@ export default async function AdminPage() {
     redirect("/login")
   }
 
-  // Get the current user's profile with super user status
-  const { data: currentUser, error: currentUserError } = await supabase
-    .from("profiles")
-    .select("id, email, full_name, is_super_user")
-    .eq("id", session.user.id)
-    .single()
+  // Get user profile with separate queries to avoid the relationship error
+  let profile = null
+  let isSuperUser = false
+  let organizations = []
 
-  // Debug information
-  console.log("Current user:", currentUser)
-  console.log("Current user error:", currentUserError)
+  try {
+    // Get profile without joining organizations
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, full_name, email, is_super_user, organization_id")
+      .eq("id", session.user.id)
+      .single()
 
-  // If there was an error fetching the current user
-  if (currentUserError) {
-    return (
-      <div className="container mx-auto py-10">
-        <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error Fetching User Profile</AlertTitle>
-          <AlertDescription>
-            <p>Error: {currentUserError.message}</p>
-            <p className="mt-2">Please check your database connection and permissions.</p>
-          </AlertDescription>
-        </Alert>
-      </div>
-    )
+    if (profileError) {
+      console.error("Profile error:", profileError)
+    } else {
+      profile = profileData
+      isSuperUser = !!profileData?.is_super_user
+    }
+
+    // Get organizations in a separate query
+    const { data: orgsData, error: orgsError } = await supabase.from("organizations").select("*")
+
+    if (orgsError) {
+      console.error("Organizations error:", orgsError)
+    } else {
+      organizations = orgsData || []
+    }
+
+    // If user has an organization_id, get the organization name
+    if (profile?.organization_id) {
+      const { data: orgData } = await supabase
+        .from("organizations")
+        .select("name")
+        .eq("id", profile.organization_id)
+        .single()
+
+      if (orgData) {
+        profile.organization_name = orgData.name
+      }
+    }
+  } catch (e) {
+    console.error("Unexpected error:", e)
   }
-
-  // Check if the user is a super user
-  const isSuperUser = currentUser?.is_super_user === true
-  console.log("Is super user:", isSuperUser)
 
   // If not a super user, show access denied
   if (!isSuperUser) {
     return (
-      <div className="container mx-auto py-10">
+      <div className="p-8">
         <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>
-            <p>You do not have permission to access the admin dashboard.</p>
-            <p className="mt-2">Your account ({currentUser?.email}) is not marked as a super user in the database.</p>
-          </AlertDescription>
-        </Alert>
-
-        <div className="mt-4 p-4 bg-gray-100 rounded-md">
-          <h2 className="text-lg font-medium mb-2">Debug Information</h2>
-          <pre className="bg-white p-3 rounded text-xs overflow-x-auto">
-            {JSON.stringify(
-              {
-                userId: session.user.id,
-                email: currentUser?.email,
-                is_super_user: currentUser?.is_super_user,
-              },
-              null,
-              2,
-            )}
-          </pre>
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <p className="font-bold">Access Denied</p>
+          <p>You do not have permission to access the admin dashboard.</p>
         </div>
       </div>
     )
   }
 
-  // If the user is a super user, fetch all users
-  const { data: allUsers, error: allUsersError } = await supabase.from("profiles").select("*")
+  // Get all users with their organizations
+  const { data: users } = await supabase.from("profiles").select("*")
 
-  // If there was an error fetching all users
-  if (allUsersError) {
-    return (
-      <div className="container mx-auto py-10">
-        <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error Fetching Users</AlertTitle>
-          <AlertDescription>
-            <p>Error: {allUsersError.message}</p>
-            <p className="mt-2">
-              You are a super user, but there was an error fetching all users. This might be due to RLS policies.
-            </p>
-          </AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
+  // Process users to include organization names
+  const processedUsers = await Promise.all(
+    (users || []).map(async (user) => {
+      if (user.organization_id) {
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("name")
+          .eq("id", user.organization_id)
+          .single()
+
+        return {
+          ...user,
+          organization_name: org?.name || null,
+        }
+      }
+      return {
+        ...user,
+        organization_name: null,
+      }
+    }),
+  )
+
+  // Get all projects with owner information
+  const { data: projects } = await supabase.from("projects").select("*")
+
+  // Process projects to include owner information
+  const processedProjects = await Promise.all(
+    (projects || []).map(async (project) => {
+      // Get owner information
+      const { data: owner } = await supabase
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", project.owner_id)
+        .single()
+
+      return {
+        ...project,
+        owner_email: owner?.email || null,
+        owner_name: owner?.full_name || null,
+      }
+    }),
+  )
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Logged in as {currentUser?.email}</span>
-          <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full flex items-center gap-1">
-            <Shield className="h-3 w-3" /> Super User
-          </span>
-        </div>
-      </div>
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
 
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>User Management ({allUsers?.length || 0} users)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {allUsers && allUsers.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {allUsers.map((user) => (
-                <div key={user.id} className="bg-white rounded-lg border p-4">
-                  <h2 className="text-xl font-semibold mb-2">{user.full_name || "No Name"}</h2>
-                  <p className="text-gray-600">Email: {user.email}</p>
-                  <p className="text-gray-600">
-                    Super User:{" "}
-                    <span className={`${user.is_super_user ? "text-green-600 font-medium" : "text-gray-500"}`}>
-                      {user.is_super_user ? "Yes" : "No"}
-                    </span>
-                  </p>
-                  <p className="text-gray-600 text-sm mt-2">ID: {user.id}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">No users found</div>
-          )}
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="users" className="space-y-8">
+        <TabsList>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="organizations">Organizations</TabsTrigger>
+          <TabsTrigger value="projects">Projects</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users">
+          <UsersManagement users={processedUsers} organizations={organizations} />
+        </TabsContent>
+
+        <TabsContent value="organizations">
+          <OrganizationsManagement organizations={organizations} />
+        </TabsContent>
+
+        <TabsContent value="projects">
+          <ProjectsManagement projects={processedProjects} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
