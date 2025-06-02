@@ -95,7 +95,11 @@ CREATE POLICY "Users can insert own profile" ON public.profiles
 -- Step 6: Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON public.profiles TO postgres, anon, authenticated, service_role;
-GRANT ALL ON public.handle_new_user TO postgres, anon, authenticated, service_role;
+
+-- Grant execute permission on functions (correct syntax)
+GRANT EXECUTE ON FUNCTION public.handle_new_user() TO postgres, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.check_function_exists(TEXT) TO postgres, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.check_trigger_exists(TEXT, TEXT, TEXT) TO postgres, anon, authenticated, service_role;
 
 -- Step 7: Test the setup
 SELECT 
