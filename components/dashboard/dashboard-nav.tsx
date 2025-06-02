@@ -14,7 +14,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Shield, UserIcon, Settings, LogOut, BarChart3, FolderOpen, Home } from "lucide-react"
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
 interface DashboardNavProps {
   user: {
@@ -51,6 +51,8 @@ export default function DashboardNav({ user }: DashboardNavProps) {
       if (user.is_super_user === undefined) {
         try {
           console.log("DashboardNav - Checking super user status for:", user.id)
+
+          const supabase = createClientComponentClient()
 
           // Simple check for super user status
           const { data, error } = await supabase.from("profiles").select("is_super_user").eq("id", user.id).single()
