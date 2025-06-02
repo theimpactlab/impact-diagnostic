@@ -1,46 +1,78 @@
 import type React from "react"
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import DashboardNav from "@/components/dashboard/dashboard-nav"
+import { Shield } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  // Create a Supabase client for server components
-  const cookieStore = cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const supabase = createServerComponentClient({ cookies })
 
-  // Get the session
+  // Get the current user's session
   const {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // If no session, redirect to login
   if (!session) {
     redirect("/login")
   }
 
-  // Get user profile - use a simpler query to avoid relationship issues
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+  // Get the current user's profile with super user status
+  const { data: currentUser } = await supabase
+    .from("profiles")
+    .select("id, email, full_name, is_super_user")
+    .eq("id", session.user.id)
+    .single()
 
-  // Create a fallback profile if none exists
-  const userProfile = profile || {
-    id: session.user.id,
-    email: session.user.email,
-    full_name: null,
-    avatar_url: null,
-    is_super_user: false,
-  }
+  const isSuperUser = currentUser?.is_super_user === true
 
   return (
     <div className="flex min-h-screen flex-col">
-      <DashboardNav user={userProfile} />
-      <main className="flex-1 bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 w-full flex justify-center">
-          <div className="w-full max-w-7xl">{children}</div>
+      <header className="sticky top-0 z-10 border-b bg-background">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center gap-4">
+            <a href="/dashboard" className="font-semibold">
+              Impact Diagnostic Tool
+            </a>
+            <nav className="hidden md:flex gap-6">
+              <a href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                Dashboard
+              </a>
+              <a href="/projects" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                Projects
+              </a>
+              <a href="/analytics" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                Analytics
+              </a>
+              {isSuperUser && (
+                <a href="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                  Admin
+                </a>
+              )}
+            </nav>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground hidden md:inline-block">
+                {currentUser?.full_name || currentUser?.email}
+              </span>
+              {isSuperUser && (
+                <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                  <Shield className="h-3 w-3" /> Admin
+                </span>
+              )}
+            </div>
+            <a
+              href="/profile"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium"
+            >
+              {currentUser?.full_name?.[0] || currentUser?.email?.[0] || "U"}
+            </a>
+          </div>
         </div>
-      </main>
+      </header>
+      <main className="flex-1">{children}</main>
     </div>
   )
 }
