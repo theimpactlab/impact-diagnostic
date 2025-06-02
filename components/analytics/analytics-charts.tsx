@@ -157,7 +157,7 @@ export default function AnalyticsCharts({ data }: AnalyticsChartsProps) {
               <BarChart data={domainData} margin={{ bottom: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="domain" angle={-45} textAnchor="end" height={100} fontSize={11} />
-                <YAxis domain={[0, 5]} />
+                <YAxis domain={[0, 10]} />
                 <Tooltip />
                 <Bar dataKey="averageScore" fill="#82ca9d" />
               </BarChart>

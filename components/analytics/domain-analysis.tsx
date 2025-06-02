@@ -106,7 +106,7 @@ export default function DomainAnalysis({ data }: DomainAnalysisProps) {
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold">—</div>
-                      <div className="text-xs text-muted-foreground">out of 5</div>
+                      <div className="text-xs text-muted-foreground">out of 10</div>
                     </div>
                   </div>
                   <Progress value={0} className="h-2" />
@@ -230,7 +230,7 @@ export default function DomainAnalysis({ data }: DomainAnalysisProps) {
                         <div className="text-2xl font-bold">
                           {stat.averageScore > 0 ? stat.averageScore.toFixed(1) : "—"}
                         </div>
-                        <div className="text-xs text-muted-foreground">out of 5</div>
+                        <div className="text-xs text-muted-foreground">out of 10</div>
                       </div>
                     </div>
                     <Progress value={stat.progress} className="h-2" />
