@@ -5,7 +5,6 @@ import { ASSESSMENT_DOMAINS } from "@/lib/constants"
 import ResultsOverview from "@/components/projects/results-overview"
 import DownloadResultsButton from "@/components/projects/download-results-button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
@@ -123,40 +122,6 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
         </CardHeader>
         <CardContent>
           <ResultsOverview domainScores={domainScores} overallScore={overallScore} />
-        </CardContent>
-      </Card>
-
-      {/* Detailed domain scores - separate section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Detailed Domain Scores</CardTitle>
-          <p className="text-sm text-muted-foreground">Individual performance across all assessment domains</p>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {domainScores.map((domain) => (
-              <div key={domain.id} className="space-y-2 p-4 border rounded-lg">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{domain.name}</span>
-                  <span
-                    className={`font-bold ${domain.score < 6 ? "text-red-600" : domain.score >= 8 ? "text-green-600" : ""}`}
-                  >
-                    {domain.score.toFixed(1)}
-                  </span>
-                </div>
-                <Progress
-                  value={domain.score * 10} // Updated for 10-point scale
-                  className={`h-2 ${
-                    domain.score < 6 ? "bg-red-100" : domain.score >= 8 ? "bg-green-100" : "bg-gray-100"
-                  }`}
-                  indicatorClassName={`${domain.score < 6 ? "bg-red-500" : domain.score >= 8 ? "bg-green-500" : ""}`}
-                />
-                <div className="text-xs text-muted-foreground">
-                  {domain.completedQuestions}/{domain.totalQuestions} questions completed
-                </div>
-              </div>
-            ))}
-          </div>
         </CardContent>
       </Card>
 
