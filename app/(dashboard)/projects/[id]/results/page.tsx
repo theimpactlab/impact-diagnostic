@@ -105,61 +105,60 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
         />
       </div>
 
-      {/* Main content - radar chart gets more space */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Radar chart takes up 2/3 of the space */}
-        <div className="xl:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Assessment Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResultsOverview domainScores={domainScores} overallScore={overallScore} />
-            </CardContent>
-          </Card>
-        </div>
+      {/* Overall score summary */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle>Overall Assessment Score</CardTitle>
+            <div className="text-4xl font-bold">{overallScore.toFixed(1)}</div>
+          </div>
+          <p className="text-sm text-muted-foreground">Average score across all completed domains (out of 10)</p>
+        </CardHeader>
+      </Card>
 
-        {/* Detailed domain scores take up 1/3 of the space */}
-        <div className="xl:col-span-1">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle>Domain Scores</CardTitle>
-                <div className="text-3xl font-bold">{overallScore.toFixed(1)}</div>
+      {/* Radar chart - full width */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Assessment Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResultsOverview domainScores={domainScores} overallScore={overallScore} />
+        </CardContent>
+      </Card>
+
+      {/* Detailed domain scores - separate section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Detailed Domain Scores</CardTitle>
+          <p className="text-sm text-muted-foreground">Individual performance across all assessment domains</p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {domainScores.map((domain) => (
+              <div key={domain.id} className="space-y-2 p-4 border rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{domain.name}</span>
+                  <span
+                    className={`font-bold ${domain.score < 6 ? "text-red-600" : domain.score >= 8 ? "text-green-600" : ""}`}
+                  >
+                    {domain.score.toFixed(1)}
+                  </span>
+                </div>
+                <Progress
+                  value={domain.score * 10} // Updated for 10-point scale
+                  className={`h-2 ${
+                    domain.score < 6 ? "bg-red-100" : domain.score >= 8 ? "bg-green-100" : "bg-gray-100"
+                  }`}
+                  indicatorClassName={`${domain.score < 6 ? "bg-red-500" : domain.score >= 8 ? "bg-green-500" : ""}`}
+                />
+                <div className="text-xs text-muted-foreground">
+                  {domain.completedQuestions}/{domain.totalQuestions} questions completed
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground">Overall Average Score (out of 10)</p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {domainScores.map((domain) => (
-                  <div key={domain.id} className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm">{domain.name}</span>
-                      <span
-                        className={`font-bold ${domain.score < 6 ? "text-red-600" : domain.score >= 8 ? "text-green-600" : ""}`}
-                      >
-                        {domain.score.toFixed(1)}
-                      </span>
-                    </div>
-                    <Progress
-                      value={domain.score * 10} // Updated for 10-point scale
-                      className={`h-2 ${
-                        domain.score < 6 ? "bg-red-100" : domain.score >= 8 ? "bg-green-100" : "bg-gray-100"
-                      }`}
-                      indicatorClassName={`${
-                        domain.score < 6 ? "bg-red-500" : domain.score >= 8 ? "bg-green-500" : ""
-                      }`}
-                    />
-                    <div className="text-xs text-muted-foreground">
-                      {domain.completedQuestions}/{domain.totalQuestions} questions
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Additional insights section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
