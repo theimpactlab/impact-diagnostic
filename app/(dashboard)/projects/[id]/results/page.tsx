@@ -76,11 +76,11 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
       ? completedDomains.reduce((sum, domain) => sum + domain.score, 0) / completedDomains.length
       : 0
 
-  // Categorize domains by score
+  // Categorize domains by score (updated for 10-point scale)
   const priorityAreas = domainScores
-    .filter((domain) => domain.score > 0 && domain.score < 3.0)
+    .filter((domain) => domain.score > 0 && domain.score < 6.0)
     .sort((a, b) => a.score - b.score)
-  const strengths = domainScores.filter((domain) => domain.score >= 4.0).sort((a, b) => b.score - a.score)
+  const strengths = domainScores.filter((domain) => domain.score >= 8.0).sort((a, b) => b.score - a.score)
 
   return (
     <div className="space-y-6">
@@ -105,10 +105,10 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
         />
       </div>
 
-      {/* Main content - side by side layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Radar chart on the left */}
-        <div className="lg:col-span-7">
+      {/* Main content - radar chart gets more space */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Radar chart takes up 2/3 of the space */}
+        <div className="xl:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>Assessment Overview</CardTitle>
@@ -119,37 +119,40 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
           </Card>
         </div>
 
-        {/* Detailed domain scores on the right */}
-        <div className="lg:col-span-5">
+        {/* Detailed domain scores take up 1/3 of the space */}
+        <div className="xl:col-span-1">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle>Domain Scores</CardTitle>
                 <div className="text-3xl font-bold">{overallScore.toFixed(1)}</div>
               </div>
-              <p className="text-sm text-muted-foreground">Overall Average Score</p>
+              <p className="text-sm text-muted-foreground">Overall Average Score (out of 10)</p>
             </CardHeader>
             <CardContent>
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {domainScores.map((domain) => (
                   <div key={domain.id} className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">{domain.name}</span>
+                      <span className="font-medium text-sm">{domain.name}</span>
                       <span
-                        className={`font-bold ${domain.score < 3 ? "text-red-600" : domain.score >= 4 ? "text-green-600" : ""}`}
+                        className={`font-bold ${domain.score < 6 ? "text-red-600" : domain.score >= 8 ? "text-green-600" : ""}`}
                       >
                         {domain.score.toFixed(1)}
                       </span>
                     </div>
                     <Progress
-                      value={domain.score * 20}
+                      value={domain.score * 10} // Updated for 10-point scale
                       className={`h-2 ${
-                        domain.score < 3 ? "bg-red-100" : domain.score >= 4 ? "bg-green-100" : "bg-gray-100"
+                        domain.score < 6 ? "bg-red-100" : domain.score >= 8 ? "bg-green-100" : "bg-gray-100"
                       }`}
                       indicatorClassName={`${
-                        domain.score < 3 ? "bg-red-500" : domain.score >= 4 ? "bg-green-500" : ""
+                        domain.score < 6 ? "bg-red-500" : domain.score >= 8 ? "bg-green-500" : ""
                       }`}
                     />
+                    <div className="text-xs text-muted-foreground">
+                      {domain.completedQuestions}/{domain.totalQuestions} questions
+                    </div>
                   </div>
                 ))}
               </div>
@@ -165,6 +168,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
           <Card className="border-red-200">
             <CardHeader>
               <CardTitle className="text-red-700">Priority Areas</CardTitle>
+              <p className="text-sm text-muted-foreground">Domains scoring below 6.0</p>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -172,7 +176,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
                   <div key={domain.id} className="flex items-center justify-between">
                     <span>{domain.name}</span>
                     <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50">
-                      {domain.score.toFixed(1)}
+                      {domain.score.toFixed(1)}/10
                     </Badge>
                   </div>
                 ))}
@@ -186,6 +190,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
           <Card className="border-green-200">
             <CardHeader>
               <CardTitle className="text-green-700">Strengths</CardTitle>
+              <p className="text-sm text-muted-foreground">Domains scoring 8.0 or above</p>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -193,7 +198,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
                   <div key={domain.id} className="flex items-center justify-between">
                     <span>{domain.name}</span>
                     <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
-                      {domain.score.toFixed(1)}
+                      {domain.score.toFixed(1)}/10
                     </Badge>
                   </div>
                 ))}
@@ -234,7 +239,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
             <div>
               <h3 className="font-semibold mb-2">Long-term Strategy</h3>
               <ul className="space-y-2 text-sm">
-                <li className="list-disc ml-4">Aim for all domains to score above 4.0</li>
+                <li className="list-disc ml-4">Aim for all domains to score above 8.0</li>
                 <li className="list-disc ml-4">Establish a continuous improvement process</li>
                 <li className="list-disc ml-4">Consider external validation of your assessment approach</li>
               </ul>
