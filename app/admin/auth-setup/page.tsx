@@ -1,44 +1,43 @@
 "use client"
 
 import { useState } from "react"
-import { setupAuthTables } from "@/app/actions/setup-auth"
+import { diagnoseAuthSetup, fixAuthSetup, testUserCreation } from "@/app/actions/diagnose-auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Copy, Database, CheckCircle, AlertCircle } from "lucide-react"
+import { Copy, Database, CheckCircle, AlertCircle, XCircle, RefreshCw, TestTube } from "lucide-react"
 
 export default function AuthSetupPage() {
   const [isRunning, setIsRunning] = useState(false)
-  const [setupStatus, setSetupStatus] = useState<any>(null)
-  const [sqlCommand, setSqlCommand] = useState<string>("")
+  const [diagnostics, setDiagnostics] = useState<any>(null)
+  const [sqlScript, setSqlScript] = useState<string>("")
+  const [testResult, setTestResult] = useState<any>(null)
   const { toast } = useToast()
 
-  const runSetup = async () => {
+  const runDiagnostics = async () => {
     setIsRunning(true)
     try {
-      const result = await setupAuthTables()
-      setSetupStatus(result)
+      const result = await diagnoseAuthSetup()
+      setDiagnostics(result)
 
       if (result.error) {
         toast({
-          title: "Error",
+          title: "Diagnostic Error",
           description: result.error,
           variant: "destructive",
         })
-        if (result.sqlScript) {
-          setSqlCommand(result.sqlScript)
-        }
-      } else if (result.success) {
+      } else {
         toast({
-          title: "Success",
-          description: result.success,
+          title: "Diagnostics Complete",
+          description: "Check the results below",
         })
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to run auth setup",
+        description: "Failed to run diagnostics",
         variant: "destructive",
       })
     } finally {
@@ -46,85 +45,218 @@ export default function AuthSetupPage() {
     }
   }
 
-  const copySqlCommand = () => {
-    navigator.clipboard.writeText(sqlCommand)
+  const generateFixScript = async () => {
+    try {
+      const result = await fixAuthSetup()
+      setSqlScript(result.sqlScript)
+      toast({
+        title: "Fix Script Generated",
+        description: "Copy and run the SQL script in Supabase",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate fix script",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const prepareTest = async () => {
+    try {
+      const result = await testUserCreation()
+      setTestResult(result)
+
+      if (result.error) {
+        toast({
+          title: "Test Preparation Failed",
+          description: result.error,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Test Ready",
+          description: result.message,
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to prepare test",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const copySqlScript = () => {
+    navigator.clipboard.writeText(sqlScript)
     toast({
       title: "Copied",
-      description: "SQL command copied to clipboard",
+      description: "SQL script copied to clipboard",
     })
+  }
+
+  const getStatusIcon = (status: boolean | null) => {
+    if (status === true) return <CheckCircle className="h-4 w-4 text-green-600" />
+    if (status === false) return <XCircle className="h-4 w-4 text-red-600" />
+    return <AlertCircle className="h-4 w-4 text-yellow-600" />
+  }
+
+  const getStatusBadge = (status: boolean | null) => {
+    if (status === true) return <Badge className="bg-green-100 text-green-800">OK</Badge>
+    if (status === false) return <Badge variant="destructive">FAILED</Badge>
+    return <Badge variant="secondary">UNKNOWN</Badge>
   }
 
   return (
     <div className="container mx-auto py-10 space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Authentication Setup</h1>
-        <p className="text-muted-foreground">Fix user registration issues by setting up the required database tables</p>
+        <h1 className="text-3xl font-bold tracking-tight">Authentication Diagnostics</h1>
+        <p className="text-muted-foreground">Comprehensive diagnosis and fix for user registration issues</p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Run Diagnostics
+            </CardTitle>
+            <CardDescription>Check all components of the auth system</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button onClick={runDiagnostics} disabled={isRunning} className="w-full">
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRunning ? "animate-spin" : ""}`} />
+              {isRunning ? "Running Diagnostics..." : "Run Full Diagnostics"}
+            </Button>
+
+            {diagnostics && (
+              <div className="space-y-3">
+                <h4 className="font-medium">Diagnostic Results:</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Profiles Table</span>
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(diagnostics.diagnostics?.profilesTable)}
+                      {getStatusBadge(diagnostics.diagnostics?.profilesTable)}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Handle New User Function</span>
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(diagnostics.diagnostics?.handleNewUserFunction)}
+                      {getStatusBadge(diagnostics.diagnostics?.handleNewUserFunction)}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Auth Trigger</span>
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(diagnostics.diagnostics?.authTrigger)}
+                      {getStatusBadge(diagnostics.diagnostics?.authTrigger)}
+                    </div>
+                  </div>
+                </div>
+
+                {diagnostics.diagnostics?.errors?.length > 0 && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Issues Found</AlertTitle>
+                    <AlertDescription>
+                      <ul className="list-disc list-inside mt-2">
+                        {diagnostics.diagnostics.errors.map((error: string, index: number) => (
+                          <li key={index} className="text-xs">
+                            {error}
+                          </li>
+                        ))}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TestTube className="h-5 w-5" />
+              Test Registration
+            </CardTitle>
+            <CardDescription>Prepare and test user registration</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button onClick={prepareTest} variant="outline" className="w-full">
+              <TestTube className="h-4 w-4 mr-2" />
+              Prepare Test
+            </Button>
+
+            {testResult && (
+              <div className="space-y-3">
+                {testResult.error ? (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Test Preparation Failed</AlertTitle>
+                    <AlertDescription>{testResult.error}</AlertDescription>
+                  </Alert>
+                ) : (
+                  <Alert>
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertTitle>Test Ready</AlertTitle>
+                    <AlertDescription>
+                      <div className="space-y-2">
+                        <p>Current profiles in database: {testResult.profilesCount}</p>
+                        <p>Test with email: {testResult.testEmail}</p>
+                        <Button asChild size="sm" className="mt-2">
+                          <a href="/signup" target="_blank" rel="noreferrer">
+                            Open Signup Page
+                          </a>
+                        </Button>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            Authentication Database Setup
-          </CardTitle>
-          <CardDescription>
-            This tool will set up the necessary database tables and triggers for user registration
-          </CardDescription>
+          <CardTitle>Generate Fix Script</CardTitle>
+          <CardDescription>Generate a comprehensive SQL script to fix all authentication setup issues</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Important</AlertTitle>
-            <AlertDescription>
-              This will attempt to create or fix the profiles table and related triggers needed for user registration.
-              Make sure you have database admin privileges.
-            </AlertDescription>
-          </Alert>
-
-          <Button onClick={runSetup} disabled={isRunning}>
-            {isRunning ? "Running Setup..." : "Run Auth Setup"}
+          <Button onClick={generateFixScript} variant="outline">
+            Generate Complete Fix Script
           </Button>
 
-          {setupStatus && (
+          {sqlScript && (
             <div className="space-y-4">
-              {setupStatus.error ? (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Setup Failed</AlertTitle>
-                  <AlertDescription>{setupStatus.error}</AlertDescription>
-                </Alert>
-              ) : (
-                <Alert>
-                  <CheckCircle className="h-4 w-4" />
-                  <AlertTitle>Setup Successful</AlertTitle>
-                  <AlertDescription>{setupStatus.success}</AlertDescription>
-                </Alert>
-              )}
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Instructions</AlertTitle>
+                <AlertDescription>
+                  1. Copy the SQL script below
+                  <br />
+                  2. Go to your Supabase dashboard → SQL Editor
+                  <br />
+                  3. Paste and run the entire script
+                  <br />
+                  4. Come back and run diagnostics again
+                  <br />
+                  5. Test user registration
+                </AlertDescription>
+              </Alert>
 
-              {sqlCommand && (
-                <div className="space-y-2">
-                  <h4 className="font-medium">Run this SQL command in your Supabase SQL Editor:</h4>
-                  <div className="relative">
-                    <pre className="bg-gray-100 p-4 rounded-md text-sm overflow-x-auto max-h-96">{sqlCommand}</pre>
-                    <Button size="sm" variant="outline" className="absolute top-2 right-2" onClick={copySqlCommand}>
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Instructions</AlertTitle>
-                    <AlertDescription>
-                      1. Go to your Supabase dashboard
-                      <br />
-                      2. Navigate to the SQL Editor
-                      <br />
-                      3. Paste and run the SQL command above
-                      <br />
-                      4. Come back and check the setup again
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              )}
+              <div className="relative">
+                <pre className="bg-gray-100 p-4 rounded-md text-sm overflow-x-auto max-h-96 border">{sqlScript}</pre>
+                <Button size="sm" variant="outline" className="absolute top-2 right-2" onClick={copySqlScript}>
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copy
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -132,38 +264,29 @@ export default function AuthSetupPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Common Registration Issues</CardTitle>
-          <CardDescription>Troubleshooting tips for user registration problems</CardDescription>
+          <CardTitle>Common Issues & Solutions</CardTitle>
+          <CardDescription>Troubleshooting guide for registration problems</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <h3 className="font-medium mb-2">Database error saving new user</h3>
-            <p className="text-sm text-muted-foreground">
-              This error typically occurs when the database is not properly set up to handle new user registrations. The
-              most common causes are:
-            </p>
-            <ul className="list-disc list-inside mt-2 space-y-1 text-sm text-muted-foreground">
-              <li>Missing profiles table</li>
-              <li>Missing or incorrect trigger on auth.users table</li>
-              <li>Errors in the handle_new_user function</li>
-              <li>Database permission issues</li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-medium mb-2">Manual Fix</h3>
-            <p className="text-sm text-muted-foreground">
-              If the automatic setup doesn't work, you can manually run the SQL commands in your Supabase SQL Editor.
-              This will create the necessary tables and triggers for user registration.
-            </p>
-          </div>
-
-          <div>
-            <h3 className="font-medium mb-2">Testing Registration</h3>
-            <p className="text-sm text-muted-foreground">
-              After running the setup, try registering a new user to see if the issue is resolved. If you still
-              encounter problems, check the browser console for more detailed error messages.
-            </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <h4 className="font-medium mb-2">Database Error Saving New User</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Missing profiles table</li>
+                <li>• Broken trigger function</li>
+                <li>• RLS policy issues</li>
+                <li>• Function permission problems</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">After Running Fix Script</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Run diagnostics to verify</li>
+                <li>• Test with a new email address</li>
+                <li>• Check browser console for errors</li>
+                <li>• Verify email confirmation works</li>
+              </ul>
+            </div>
           </div>
         </CardContent>
       </Card>
