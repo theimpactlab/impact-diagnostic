@@ -163,42 +163,105 @@ export default function DownloadResultsButton({
       doc.text(`${overallScore.toFixed(1)}/10`, margin, yPosition)
       yPosition += 20
 
-      // Add radar chart placeholder (since we can't easily capture the chart)
+      // Add radar chart visualization
       doc.setFontSize(14)
       doc.setFont("helvetica", "bold")
       doc.text("Assessment Overview", margin, yPosition)
       yPosition += 10
 
-      doc.setFontSize(10)
-      doc.setFont("helvetica", "normal")
-      doc.text("Radar chart showing performance across all domains:", margin, yPosition)
-      yPosition += 8
-
-      // Draw a simple representation of the radar chart data
       const completedDomains = domainScores.filter((domain) => domain.score > 0)
       if (completedDomains.length > 0) {
+        // Draw a simple radar chart representation
+        const centerX = pageWidth / 2
+        const centerY = yPosition + 60
+        const maxRadius = 50
+
+        // Draw axis lines and labels for each domain
         completedDomains.forEach((domain, index) => {
-          if (yPosition > 250) {
-            doc.addPage()
-            yPosition = margin
-          }
-          const barLength = (domain.score / 10) * 60 // Scale to 60 units max
+          const angle = (Math.PI * 2 * index) / completedDomains.length - Math.PI / 2
+          const labelRadius = maxRadius + 15
 
-          // Domain name
-          doc.text(`${domain.name}:`, margin, yPosition)
+          // Draw axis line
+          doc.setDrawColor(200, 200, 200)
+          doc.line(centerX, centerY, centerX + maxRadius * Math.cos(angle), centerY + maxRadius * Math.sin(angle))
 
-          // Score bar representation
-          doc.setDrawColor(59, 130, 246) // Blue color
-          doc.setFillColor(59, 130, 246)
-          doc.rect(margin + 80, yPosition - 3, barLength, 4, "F")
-
-          // Score text
-          doc.text(`${domain.score.toFixed(1)}/10`, margin + 150, yPosition)
-
-          yPosition += 8
+          // Add domain label
+          const shortName = domain.name.length > 15 ? domain.name.substring(0, 12) + "..." : domain.name
+          doc.setFontSize(8)
+          doc.text(shortName, centerX + labelRadius * Math.cos(angle), centerY + labelRadius * Math.sin(angle), {
+            align: angle > Math.PI / 2 || angle < -Math.PI / 2 ? "right" : "left",
+          })
         })
+
+        // Draw concentric circles for scale
+        ;[0.2, 0.4, 0.6, 0.8, 1].forEach((scale) => {
+          doc.setDrawColor(220, 220, 220)
+          doc.circle(centerX, centerY, maxRadius * scale, "S")
+        })
+
+        // Draw data points and connect them
+        const points = completedDomains.map((domain, index) => {
+          const angle = (Math.PI * 2 * index) / completedDomains.length - Math.PI / 2
+          const radius = (domain.score / 10) * maxRadius
+          return {
+            x: centerX + radius * Math.cos(angle),
+            y: centerY + radius * Math.sin(angle),
+          }
+        })
+
+        // Draw filled polygon
+        doc.setFillColor(59, 130, 246)
+        doc.setDrawColor(37, 99, 235)
+
+        // Start path
+        if (points.length > 2) {
+          doc.setGState(new doc.GState({ opacity: 0.6 }))
+
+          // Draw filled polygon
+          doc.moveTo(points[0].x, points[0].y)
+          for (let i = 1; i < points.length; i++) {
+            doc.lineTo(points[i].x, points[i].y)
+          }
+          doc.lineTo(points[0].x, points[0].y)
+          doc.fill()
+
+          // Reset opacity
+          doc.setGState(new doc.GState({ opacity: 1.0 }))
+
+          // Draw outline and points
+          doc.setLineWidth(0.5)
+          doc.moveTo(points[0].x, points[0].y)
+          for (let i = 1; i < points.length; i++) {
+            doc.lineTo(points[i].x, points[i].y)
+          }
+          doc.lineTo(points[0].x, points[0].y)
+          doc.stroke()
+
+          // Draw points
+          points.forEach((point) => {
+            doc.setFillColor(37, 99, 235)
+            doc.circle(point.x, point.y, 2, "F")
+          })
+        }
+
+        // Add scale labels
+        doc.setFontSize(7)
+        doc.setTextColor(150, 150, 150)
+        doc.text("2", centerX + 10, centerY - maxRadius * 0.2)
+        doc.text("4", centerX + 20, centerY - maxRadius * 0.4)
+        doc.text("6", centerX + 30, centerY - maxRadius * 0.6)
+        doc.text("8", centerX + 40, centerY - maxRadius * 0.8)
+        doc.text("10", centerX + 50, centerY - maxRadius)
+
+        // Reset text color
+        doc.setTextColor(0, 0, 0)
+      } else {
+        doc.setFontSize(10)
+        doc.setFont("helvetica", "italic")
+        doc.text("No assessment data available for visualization", margin, yPosition + 30)
       }
-      yPosition += 15
+
+      yPosition += 130 // Adjust based on chart height
 
       // Domain scores table
       doc.setFontSize(16)

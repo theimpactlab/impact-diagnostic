@@ -40,17 +40,28 @@ export default function AssessmentRadarChart({ domainScores }: RadarChartProps) 
     <div className="h-[400px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart data={chartData} margin={{ top: 20, right: 80, bottom: 20, left: 80 }}>
-          <PolarGrid />
+          <PolarGrid gridType="circle" />
           <PolarAngleAxis dataKey="domain" tick={{ fontSize: 12, fill: "#666" }} className="text-xs" />
-          <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fontSize: 10, fill: "#999" }} tickCount={6} />
+          <PolarRadiusAxis
+            angle={90}
+            domain={[0, 10]}
+            tick={{ fontSize: 10, fill: "#999" }}
+            tickCount={6}
+            axisLine={false}
+          />
           <Radar
             name="Score"
             dataKey="score"
             stroke="#2563eb"
             fill="#3b82f6"
-            fillOpacity={0.3}
+            fillOpacity={0.6}
             strokeWidth={2}
-            dot={{ fill: "#2563eb", strokeWidth: 2, r: 4 }}
+            dot={{
+              fill: "#2563eb",
+              strokeWidth: 2,
+              r: 4,
+              strokeOpacity: 1,
+            }}
           />
         </RadarChart>
       </ResponsiveContainer>
