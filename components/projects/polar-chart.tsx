@@ -77,7 +77,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
             ticks: {
               stepSize: 2,
               font: {
-                size: 10,
+                size: 12,
               },
             },
             grid: {
@@ -85,6 +85,11 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
             },
             angleLines: {
               color: "rgba(0, 0, 0, 0.1)",
+            },
+            pointLabels: {
+              font: {
+                size: 13,
+              },
             },
           },
         },
@@ -94,13 +99,19 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
             position: "bottom",
             labels: {
               font: {
-                size: 11,
+                size: 13,
               },
-              padding: 15,
+              padding: 20,
               usePointStyle: true,
             },
           },
           tooltip: {
+            titleFont: {
+              size: 14,
+            },
+            bodyFont: {
+              size: 14,
+            },
             callbacks: {
               label: (context) => {
                 const label = context.label || ""
@@ -125,7 +136,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
 
   if (!hasData) {
     return (
-      <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+      <div className="h-[500px] flex items-center justify-center text-muted-foreground">
         <div className="text-center">
           <p>No assessment data available</p>
           <p className="text-sm">Complete domain assessments to see the polar chart</p>
@@ -135,8 +146,8 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
   }
 
   return (
-    <div className="h-[400px] w-full flex items-center justify-center">
-      <div className="aspect-square h-full max-h-[350px] max-w-[350px]">
+    <div className="h-[550px] w-full flex items-center justify-center">
+      <div className="aspect-square h-full max-h-[500px] w-full max-w-[500px]">
         <canvas ref={chartRef} />
       </div>
     </div>
