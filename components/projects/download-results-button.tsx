@@ -130,9 +130,8 @@ export default function DownloadResultsButton({
   const downloadPDF = async () => {
     setIsGenerating(true)
     try {
-      // Import jsPDF and html2canvas for chart capture
+      // Import jsPDF
       const { jsPDF } = await import("jspdf")
-      const html2canvas = await import("html2canvas")
 
       const doc = new jsPDF()
       const pageWidth = doc.internal.pageSize.getWidth()
@@ -164,49 +163,7 @@ export default function DownloadResultsButton({
       doc.text(`${overallScore.toFixed(1)}/10`, margin, yPosition)
       yPosition += 20
 
-      // Try to capture the radar chart
-      try {
-        const radarChartElement =
-          document.querySelector('[data-testid="radar-chart"]') ||
-          document.querySelector(".recharts-wrapper") ||
-          document.querySelector("svg")
-
-        if (radarChartElement) {
-          const canvas = await html2canvas.default(radarChartElement as HTMLElement, {
-            backgroundColor: "#ffffff",
-            scale: 2,
-            logging: false,
-          })
-
-          const imgData = canvas.toDataURL("image/png")
-          const imgWidth = 120
-          const imgHeight = (canvas.height * imgWidth) / canvas.width
-
-          // Add new page if needed
-          if (yPosition + imgHeight > 250) {
-            doc.addPage()
-            yPosition = margin
-          }
-
-          doc.setFontSize(16)
-          doc.setFont("helvetica", "bold")
-          doc.text("Assessment Overview", margin, yPosition)
-          yPosition += 15
-
-          doc.addImage(imgData, "PNG", margin, yPosition, imgWidth, imgHeight)
-          yPosition += imgHeight + 15
-        }
-      } catch (chartError) {
-        console.warn("Could not capture radar chart:", chartError)
-        // Continue without the chart
-      }
-
       // Domain scores table
-      if (yPosition > 200) {
-        doc.addPage()
-        yPosition = margin
-      }
-
       doc.setFontSize(16)
       doc.setFont("helvetica", "bold")
       doc.text("Domain Scores", margin, yPosition)
@@ -353,8 +310,8 @@ export default function DownloadResultsButton({
       doc.save(`${projectName}-assessment-results-${new Date().toISOString().split("T")[0]}.pdf`)
 
       toast({
-        title: "Enhanced PDF Generated",
-        description: "Your assessment results with radar chart have been exported to PDF",
+        title: "PDF Generated",
+        description: "Your assessment results have been exported to PDF",
       })
     } catch (error) {
       console.error("Error generating PDF:", error)

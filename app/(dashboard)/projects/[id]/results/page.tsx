@@ -1,14 +1,13 @@
 import { notFound } from "next/navigation"
 import { cookies } from "next/headers"
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { ASSESSMENT_DOMAINS } from "@/lib/constants"
-import ResultsOverview from "@/components/projects/results-overview"
 import DownloadResultsButton from "@/components/projects/download-results-button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
 
 export const dynamic = "force-dynamic"
 
@@ -18,6 +17,17 @@ interface ResultsPageProps {
   }
 }
 
+// Domain mapping
+const DOMAIN_NAMES: Record<string, string> = {
+  purpose_alignment: "Purpose Alignment",
+  purpose_statement: "Purpose Statement",
+  leadership_for_impact: "Leadership for Impact",
+  theory_of_change: "Theory of Change",
+  measurement_framework: "Measurement Framework",
+  status_of_data: "Status of Data",
+  system_capabilities: "System Capabilities",
+}
+
 export default async function ResultsPage({ params }: ResultsPageProps) {
   const cookieStore = cookies()
   const supabase = createServerComponentClient({ cookies: () => cookieStore })
@@ -25,7 +35,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
   // Get project details
   const { data: project, error: projectError } = await supabase
     .from("projects")
-    .select("*, organizations(*)")
+    .select("*")
     .eq("id", params.id)
     .single()
 
@@ -42,40 +52,44 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
     .limit(1)
     .single()
 
+  if (!assessment) {
+    notFound()
+  }
+
   // Get all scores for this assessment
   const { data: scores } = await supabase.from("assessment_scores").select("*").eq("assessment_id", assessment.id)
 
+  // Get all answers for detailed data
+  const { data: answers } = await supabase.from("assessment_answers").select("*").eq("assessment_id", assessment.id)
+
   // Calculate domain scores
-  const domainScores = ASSESSMENT_DOMAINS.map((domain) => {
-    const domainScores = scores?.filter((score) => score.domain === domain.id) || []
-    const totalQuestions = domain.questionCount || 0
-    const completedQuestions = domainScores.length
-    const averageScore =
-      domainScores.length > 0 ? domainScores.reduce((sum, score) => sum + score.score, 0) / domainScores.length : 0
+  const domainScores = Object.entries(DOMAIN_NAMES).map(([domainId, domainName]) => {
+    const domainScore = scores?.find((score) => score.domain === domainId)
+    const domainAnswers = answers?.filter((answer) => answer.domain === domainId) || []
 
     return {
-      id: domain.id,
-      name: domain.name,
-      score: averageScore,
-      completedQuestions,
-      totalQuestions,
-      progress: totalQuestions > 0 ? (completedQuestions / totalQuestions) * 100 : 0,
-      questionScores: domainScores.map((score) => ({
-        question_id: score.question_id,
-        score: score.score,
-        notes: score.notes,
+      id: domainId,
+      name: domainName,
+      score: domainScore?.score || 0,
+      completedQuestions: domainAnswers.length,
+      totalQuestions: 3, // Assuming 3 questions per domain
+      progress: domainAnswers.length > 0 ? 100 : 0,
+      questionScores: domainAnswers.map((answer) => ({
+        question_id: answer.question_id,
+        score: answer.score,
+        notes: answer.notes,
       })),
     }
   })
 
-  // Calculate overall score (average of all domain scores)
-  const completedDomains = domainScores.filter((domain) => domain.completedQuestions > 0)
+  // Calculate overall score
+  const completedDomains = domainScores.filter((domain) => domain.score > 0)
   const overallScore =
     completedDomains.length > 0
       ? completedDomains.reduce((sum, domain) => sum + domain.score, 0) / completedDomains.length
       : 0
 
-  // Categorize domains by score (updated for 10-point scale)
+  // Categorize domains by score
   const priorityAreas = domainScores
     .filter((domain) => domain.score > 0 && domain.score < 6.0)
     .sort((a, b) => a.score - b.score)
@@ -98,7 +112,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
         <h1 className="text-3xl font-bold">{project.name} - Assessment Results</h1>
         <DownloadResultsButton
           projectName={project.name}
-          organizationName={project.organizations?.name || "Unknown Organization"}
+          organizationName={project.organization_name || "Unknown Organization"}
           domainScores={domainScores}
           overallScore={overallScore}
         />
@@ -115,13 +129,40 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
         </CardHeader>
       </Card>
 
-      {/* Radar chart - full width */}
+      {/* Domain Scores */}
       <Card>
         <CardHeader>
-          <CardTitle>Assessment Overview</CardTitle>
+          <CardTitle>Domain Scores</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResultsOverview domainScores={domainScores} overallScore={overallScore} />
+          <div className="space-y-6">
+            {domainScores.map((domain) => (
+              <div key={domain.id} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">{domain.name}</h4>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold">{domain.score > 0 ? domain.score.toFixed(1) : "—"}</div>
+                    <div className="text-xs text-muted-foreground">out of 10</div>
+                  </div>
+                </div>
+                {domain.score > 0 && <Progress value={(domain.score / 10) * 100} className="h-2" />}
+                <div className="flex items-center gap-2">
+                  <Badge variant={domain.score >= 8 ? "default" : domain.score >= 6 ? "secondary" : "outline"}>
+                    {domain.score >= 8
+                      ? "Strength"
+                      : domain.score >= 6
+                        ? "Good"
+                        : domain.score > 0
+                          ? "Priority"
+                          : "Not Assessed"}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {domain.completedQuestions}/{domain.totalQuestions} questions completed
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
