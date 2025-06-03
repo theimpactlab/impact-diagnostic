@@ -8,6 +8,7 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import AssessmentRadarChart from "@/components/projects/radar-chart"
 
 export const dynamic = "force-dynamic"
 
@@ -127,6 +128,17 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
           </div>
           <p className="text-sm text-muted-foreground">Average score across all completed domains (out of 10)</p>
         </CardHeader>
+      </Card>
+
+      {/* Radar Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Assessment Overview</CardTitle>
+          <p className="text-sm text-muted-foreground">Visual representation of your scores across all domains</p>
+        </CardHeader>
+        <CardContent>
+          <AssessmentRadarChart domainScores={domainScores} />
+        </CardContent>
       </Card>
 
       {/* Domain Scores */}

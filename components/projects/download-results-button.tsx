@@ -163,10 +163,47 @@ export default function DownloadResultsButton({
       doc.text(`${overallScore.toFixed(1)}/10`, margin, yPosition)
       yPosition += 20
 
+      // Add radar chart placeholder (since we can't easily capture the chart)
+      doc.setFontSize(14)
+      doc.setFont("helvetica", "bold")
+      doc.text("Assessment Overview", margin, yPosition)
+      yPosition += 10
+
+      doc.setFontSize(10)
+      doc.setFont("helvetica", "normal")
+      doc.text("Radar chart showing performance across all domains:", margin, yPosition)
+      yPosition += 8
+
+      // Draw a simple representation of the radar chart data
+      const completedDomains = domainScores.filter((domain) => domain.score > 0)
+      if (completedDomains.length > 0) {
+        completedDomains.forEach((domain, index) => {
+          if (yPosition > 250) {
+            doc.addPage()
+            yPosition = margin
+          }
+          const barLength = (domain.score / 10) * 60 // Scale to 60 units max
+
+          // Domain name
+          doc.text(`${domain.name}:`, margin, yPosition)
+
+          // Score bar representation
+          doc.setDrawColor(59, 130, 246) // Blue color
+          doc.setFillColor(59, 130, 246)
+          doc.rect(margin + 80, yPosition - 3, barLength, 4, "F")
+
+          // Score text
+          doc.text(`${domain.score.toFixed(1)}/10`, margin + 150, yPosition)
+
+          yPosition += 8
+        })
+      }
+      yPosition += 15
+
       // Domain scores table
       doc.setFontSize(16)
       doc.setFont("helvetica", "bold")
-      doc.text("Domain Scores", margin, yPosition)
+      doc.text("Detailed Domain Scores", margin, yPosition)
       yPosition += 15
 
       doc.setFontSize(10)
@@ -311,7 +348,7 @@ export default function DownloadResultsButton({
 
       toast({
         title: "PDF Generated",
-        description: "Your assessment results have been exported to PDF",
+        description: "Your assessment results have been exported to PDF with visual chart representation",
       })
     } catch (error) {
       console.error("Error generating PDF:", error)
