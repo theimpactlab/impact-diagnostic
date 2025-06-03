@@ -8,6 +8,7 @@ import {
   RadialBarChart,
   ResponsiveContainer,
   Cell,
+  Legend,
 } from "recharts"
 
 interface DomainScore {
@@ -32,9 +33,6 @@ const COLORS = [
   "#8b5cf6", // Violet
   "#06b6d4", // Cyan
   "#84cc16", // Lime
-  "#f97316", // Orange
-  "#ec4899", // Pink
-  "#6366f1", // Indigo
 ]
 
 export default function AssessmentPolarChart({ domainScores }: PolarChartProps) {
@@ -60,45 +58,41 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
   }
 
   return (
-    <div className="h-[400px] w-full">
+    <div className="h-[500px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <RadialBarChart
           cx="50%"
           cy="50%"
-          innerRadius="20%"
-          outerRadius="80%"
+          innerRadius="30%"
+          outerRadius="70%"
           data={chartData}
           startAngle={90}
           endAngle={450}
         >
           <PolarGrid gridType="circle" />
-          <PolarAngleAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#666" }} />
+          <PolarAngleAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "#666" }} className="text-xs" />
           <PolarRadiusAxis
             angle={90}
             domain={[0, 10]}
-            tick={{ fontSize: 9, fill: "#999" }}
+            tick={{ fontSize: 10, fill: "#999" }}
             tickCount={6}
             axisLine={false}
           />
-          <RadialBar dataKey="value" cornerRadius={4} fill="#8884d8">
+          <RadialBar dataKey="value" cornerRadius={3} fill="#8884d8" background={{ fill: "#f1f5f9" }} minAngle={15}>
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.fill} />
             ))}
           </RadialBar>
+          <Legend
+            iconSize={8}
+            layout="horizontal"
+            verticalAlign="bottom"
+            align="center"
+            wrapperStyle={{ paddingTop: "20px", fontSize: "12px" }}
+            formatter={(value, entry) => `${entry.payload.fullName}: ${entry.payload.value.toFixed(1)}`}
+          />
         </RadialBarChart>
       </ResponsiveContainer>
-
-      {/* Legend */}
-      <div className="mt-4 flex flex-wrap justify-center gap-3">
-        {chartData.map((entry, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.fill }} />
-            <span className="text-xs text-gray-600" title={entry.fullName}>
-              {entry.name}: {entry.value.toFixed(1)}
-            </span>
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
