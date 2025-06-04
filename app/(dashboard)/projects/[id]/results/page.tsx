@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation"
 import { cookies } from "next/headers"
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import AssessmentPolarChart from "@/components/projects/polar-chart"
 import DownloadResultsButton from "@/components/projects/download-results-button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import AssessmentPolarChart from "@/components/projects/polar-chart"
 
 export const dynamic = "force-dynamic"
 
@@ -18,7 +18,7 @@ interface ResultsPageProps {
   }
 }
 
-// Domain mapping
+// Domain mapping that matches your assessment system
 const DOMAIN_NAMES: Record<string, string> = {
   purpose_alignment: "Purpose Alignment",
   purpose_statement: "Purpose Statement",
@@ -54,7 +54,20 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
     .single()
 
   if (!assessment) {
-    notFound()
+    return (
+      <div className="container mx-auto py-10">
+        <h1 className="text-2xl font-bold mb-6">Assessment Results</h1>
+        <Card>
+          <CardHeader>
+            <CardTitle>No Assessment Data</CardTitle>
+            <CardDescription>This project does not have any completed assessments yet.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>Complete an assessment to see results here.</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   // Get all scores for this assessment
@@ -63,7 +76,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
   // Get all answers for detailed data
   const { data: answers } = await supabase.from("assessment_answers").select("*").eq("assessment_id", assessment.id)
 
-  // Calculate domain scores
+  // Calculate domain scores using the correct domain IDs
   const domainScores = Object.entries(DOMAIN_NAMES).map(([domainId, domainName]) => {
     const domainScore = scores?.find((score) => score.domain === domainId)
     const domainAnswers = answers?.filter((answer) => answer.domain === domainId) || []
@@ -73,13 +86,8 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
       name: domainName,
       score: domainScore?.score || 0,
       completedQuestions: domainAnswers.length,
-      totalQuestions: 3, // Assuming 3 questions per domain
+      totalQuestions: 3, // Assuming 3 questions per domain based on your assessment structure
       progress: domainAnswers.length > 0 ? 100 : 0,
-      questionScores: domainAnswers.map((answer) => ({
-        question_id: answer.question_id,
-        score: answer.score,
-        notes: answer.notes,
-      })),
     }
   })
 
@@ -97,7 +105,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
   const strengths = domainScores.filter((domain) => domain.score >= 8.0).sort((a, b) => b.score - a.score)
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-10">
       {/* Header with back button */}
       <div className="flex items-center gap-4 mb-2">
         <Button asChild variant="ghost" size="sm">
@@ -109,18 +117,28 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
       </div>
 
       {/* Title and download button */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">{project.name} - Assessment Results</h1>
         <DownloadResultsButton
           projectName={project.name}
           organizationName={project.organization_name || "Unknown Organization"}
-          domainScores={domainScores}
+          domainScores={domainScores.map((domain) => ({
+            ...domain,
+            questionScores:
+              answers
+                ?.filter((answer) => answer.domain === domain.id)
+                .map((answer) => ({
+                  question_id: answer.question_id,
+                  score: answer.score,
+                  notes: answer.notes,
+                })) || [],
+          }))}
           overallScore={overallScore}
         />
       </div>
 
       {/* Overall score summary */}
-      <Card>
+      <Card className="mb-8">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle>Overall Assessment Score</CardTitle>
@@ -130,24 +148,24 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
         </CardHeader>
       </Card>
 
-      {/* Polar Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Assessment Overview</CardTitle>
-          <p className="text-sm text-muted-foreground">Visual representation of your scores across all domains</p>
-        </CardHeader>
-        <CardContent>
-          <AssessmentPolarChart domainScores={domainScores} />
-        </CardContent>
-      </Card>
+      {/* Chart and Domain Scores */}
+      <div className="grid gap-6 md:grid-cols-2 mb-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Assessment Overview</CardTitle>
+            <CardDescription>Visual representation of your scores across all domains</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AssessmentPolarChart domainScores={domainScores} />
+          </CardContent>
+        </Card>
 
-      {/* Domain Scores */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Domain Scores</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Domain Scores</CardTitle>
+            <CardDescription>Performance across assessment areas</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
             {domainScores.map((domain) => (
               <div key={domain.id} className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -174,12 +192,12 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
                 </div>
               </div>
             ))}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Additional insights section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* Priority areas */}
         {priorityAreas.length > 0 && (
           <Card className="border-red-200">
