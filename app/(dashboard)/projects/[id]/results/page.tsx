@@ -76,18 +76,42 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
   // Get all answers for detailed data
   const { data: answers } = await supabase.from("assessment_answers").select("*").eq("assessment_id", assessment.id)
 
+  // Debug: Log the raw data to see what's coming from the database
+  console.log("Raw scores:", scores)
+  console.log("Raw answers:", answers)
+
   // Calculate domain scores using the correct domain IDs
   const domainScores = Object.entries(DOMAIN_NAMES).map(([domainId, domainName]) => {
-    const domainScore = scores?.find((score) => score.domain === domainId)
+    // Find scores for this domain
+    const domainScores = scores?.filter((score) => score.domain === domainId) || []
+
+    // Find answers for this domain
     const domainAnswers = answers?.filter((answer) => answer.domain === domainId) || []
+
+    // Calculate average score for this domain
+    const totalScore = domainScores.reduce((sum, score) => sum + score.score, 0)
+    const averageScore = domainScores.length > 0 ? totalScore / domainScores.length : 0
+
+    // Debug: Log domain-specific data
+    console.log(`Domain ${domainId} (${domainName}):`, {
+      scores: domainScores,
+      answers: domainAnswers,
+      averageScore,
+      completedQuestions: domainAnswers.length,
+    })
 
     return {
       id: domainId,
       name: domainName,
-      score: domainScore?.score || 0,
+      score: averageScore,
       completedQuestions: domainAnswers.length,
       totalQuestions: 3, // Assuming 3 questions per domain based on your assessment structure
-      progress: domainAnswers.length > 0 ? 100 : 0,
+      progress: domainAnswers.length > 0 ? (domainAnswers.length / 3) * 100 : 0,
+      questionScores: domainScores.map((score) => ({
+        question_id: score.question_id,
+        score: score.score,
+        notes: score.notes || "",
+      })),
     }
   })
 
@@ -122,17 +146,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
         <DownloadResultsButton
           projectName={project.name}
           organizationName={project.organization_name || "Unknown Organization"}
-          domainScores={domainScores.map((domain) => ({
-            ...domain,
-            questionScores:
-              answers
-                ?.filter((answer) => answer.domain === domain.id)
-                .map((answer) => ({
-                  question_id: answer.question_id,
-                  score: answer.score,
-                  notes: answer.notes,
-                })) || [],
-          }))}
+          domainScores={domainScores}
           overallScore={overallScore}
         />
       </div>
@@ -282,6 +296,19 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Debug information - remove in production */}
+      <div className="mt-8 p-4 bg-gray-100 rounded-lg">
+        <h3 className="font-bold mb-2">Debug Information</h3>
+        <div className="text-xs font-mono overflow-auto max-h-[200px]">
+          <p>Assessment ID: {assessment.id}</p>
+          <p>Total scores: {scores?.length || 0}</p>
+          <p>Total answers: {answers?.length || 0}</p>
+          <p>Domain IDs: {Object.keys(DOMAIN_NAMES).join(", ")}</p>
+          <p>System Capabilities scores: {scores?.filter((s) => s.domain === "system_capabilities").length || 0}</p>
+          <p>System Capabilities answers: {answers?.filter((a) => a.domain === "system_capabilities").length || 0}</p>
+        </div>
+      </div>
     </div>
   )
 }
