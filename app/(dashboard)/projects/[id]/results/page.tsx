@@ -73,42 +73,50 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
   // Get all scores for this assessment
   const { data: scores } = await supabase.from("assessment_scores").select("*").eq("assessment_id", assessment.id)
 
-  // Get all answers for detailed data
-  const { data: answers } = await supabase.from("assessment_answers").select("*").eq("assessment_id", assessment.id)
+  // Debug: Get unique domain values from the actual scores
+  const uniqueDomains = [...new Set(scores?.map((score) => score.domain) || [])]
+  console.log("Unique domains in scores:", uniqueDomains)
 
-  // Debug: Log the raw data to see what's coming from the database
-  console.log("Raw scores:", scores)
-  console.log("Raw answers:", answers)
+  // Create domain mapping based on actual data
+  const domainNameMapping: Record<string, string> = {
+    purpose_alignment: "Purpose Alignment",
+    purpose_statement: "Purpose Statement",
+    leadership_for_impact: "Leadership for Impact",
+    theory_of_change: "Theory of Change",
+    measurement_framework: "Measurement Framework",
+    status_of_data: "Status of Data",
+    system_capabilities: "System Capabilities",
+    // Add any other domains that might exist
+  }
 
-  // Calculate domain scores using the correct domain IDs
-  const domainScores = Object.entries(DOMAIN_NAMES).map(([domainId, domainName]) => {
-    // Find scores for this domain
+  // Calculate domain scores using the actual domains found in the data
+  const domainScores = uniqueDomains.map((domainId) => {
+    // Find all scores for this domain
     const domainScores = scores?.filter((score) => score.domain === domainId) || []
-
-    // Find answers for this domain
-    const domainAnswers = answers?.filter((answer) => answer.domain === domainId) || []
 
     // Calculate average score for this domain
     const totalScore = domainScores.reduce((sum, score) => sum + score.score, 0)
     const averageScore = domainScores.length > 0 ? totalScore / domainScores.length : 0
 
-    // Debug: Log domain-specific data
+    // Get domain name (use mapping or fallback to ID)
+    const domainName =
+      domainNameMapping[domainId] || domainId.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+
     console.log(`Domain ${domainId} (${domainName}):`, {
-      scores: domainScores,
-      answers: domainAnswers,
+      scoresCount: domainScores.length,
       averageScore,
-      completedQuestions: domainAnswers.length,
+      scores: domainScores.map((s) => s.score),
     })
 
     return {
       id: domainId,
       name: domainName,
       score: averageScore,
-      completedQuestions: domainAnswers.length,
-      totalQuestions: 3, // Assuming 3 questions per domain based on your assessment structure
-      progress: domainAnswers.length > 0 ? (domainAnswers.length / 3) * 100 : 0,
+      completedQuestions: domainScores.length,
+      totalQuestions: domainScores.length > 0 ? domainScores.length : 3, // Use actual count or default to 3
+      progress: domainScores.length > 0 ? 100 : 0, // If we have scores, consider it complete
       questionScores: domainScores.map((score) => ({
-        question_id: score.question_id,
+        question_id: score.question_id || `${domainId}_${score.id}`,
         score: score.score,
         notes: score.notes || "",
       })),
@@ -200,9 +208,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
                           ? "Priority"
                           : "Not Assessed"}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {domain.completedQuestions}/{domain.totalQuestions} questions completed
-                  </span>
+                  <span className="text-xs text-muted-foreground">{domain.completedQuestions} questions completed</span>
                 </div>
               </div>
             ))}
@@ -303,10 +309,13 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
         <div className="text-xs font-mono overflow-auto max-h-[200px]">
           <p>Assessment ID: {assessment.id}</p>
           <p>Total scores: {scores?.length || 0}</p>
-          <p>Total answers: {answers?.length || 0}</p>
-          <p>Domain IDs: {Object.keys(DOMAIN_NAMES).join(", ")}</p>
-          <p>System Capabilities scores: {scores?.filter((s) => s.domain === "system_capabilities").length || 0}</p>
-          <p>System Capabilities answers: {answers?.filter((a) => a.domain === "system_capabilities").length || 0}</p>
+          <p>Unique domains found: {uniqueDomains.join(", ")}</p>
+          <p>Domain scores calculated: {domainScores.length}</p>
+          {domainScores.map((domain) => (
+            <p key={domain.id}>
+              {domain.name}: {domain.score.toFixed(1)} ({domain.completedQuestions} questions)
+            </p>
+          ))}
         </div>
       </div>
     </div>
