@@ -73,9 +73,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
   // Get all scores for this assessment
   const { data: scores } = await supabase.from("assessment_scores").select("*").eq("assessment_id", assessment.id)
 
-  // Debug: Get unique domain values from the actual scores
   const uniqueDomains = [...new Set(scores?.map((score) => score.domain) || [])]
-  console.log("Unique domains in scores:", uniqueDomains)
 
   // Create domain mapping based on actual data
   const domainNameMapping: Record<string, string> = {
@@ -101,12 +99,6 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
     // Get domain name (use mapping or fallback to ID)
     const domainName =
       domainNameMapping[domainId] || domainId.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
-
-    console.log(`Domain ${domainId} (${domainName}):`, {
-      scoresCount: domainScores.length,
-      averageScore,
-      scores: domainScores.map((s) => s.score),
-    })
 
     return {
       id: domainId,
@@ -302,22 +294,6 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
           </div>
         </CardContent>
       </Card>
-
-      {/* Debug information - remove in production */}
-      <div className="mt-8 p-4 bg-gray-100 rounded-lg">
-        <h3 className="font-bold mb-2">Debug Information</h3>
-        <div className="text-xs font-mono overflow-auto max-h-[200px]">
-          <p>Assessment ID: {assessment.id}</p>
-          <p>Total scores: {scores?.length || 0}</p>
-          <p>Unique domains found: {uniqueDomains.join(", ")}</p>
-          <p>Domain scores calculated: {domainScores.length}</p>
-          {domainScores.map((domain) => (
-            <p key={domain.id}>
-              {domain.name}: {domain.score.toFixed(1)} ({domain.completedQuestions} questions)
-            </p>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
