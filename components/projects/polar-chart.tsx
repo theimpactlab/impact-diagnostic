@@ -1,7 +1,6 @@
-"use client"
-
 import { useRef, useEffect } from "react"
 import Chart from "chart.js/auto"
+import ChartDataLabels from "chartjs-plugin-datalabels"
 
 interface DomainScore {
   id: string
@@ -19,11 +18,13 @@ interface PolarChartProps {
 // Color function to match scores with colors
 function getScoreBackgroundColor(score: number): string {
   if (score >= 8) return "rgba(34, 197, 94, 0.7)" // Green for high scores
-  if (score >= 6) return "rgba(59, 130, 246, 0.7)" // Blue for good scores
+  if (score >= 6) return "rgba(245, 158, 11, 0.7)" // Amber for good scores
   if (score >= 4) return "rgba(245, 158, 11, 0.7)" // Amber for medium scores
   if (score >= 2) return "rgba(239, 68, 68, 0.7)" // Red for low scores
   return "rgba(156, 163, 175, 0.7)" // Gray for very low scores
 }
+
+Chart.register(ChartDataLabels)
 
 export default function AssessmentPolarChart({ domainScores }: PolarChartProps) {
   const chartRef = useRef<HTMLCanvasElement>(null)
@@ -118,6 +119,17 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
                 const value = context.raw || 0
                 return `${label}: ${Number(value).toFixed(1)}/10`
               },
+            },
+          },
+          datalabels: {
+            color: "#000",
+            font: {
+              size: 12,
+              weight: "bold",
+            },
+            formatter: (value, context) => {
+              const label = context.chart.data.labels?.[context.dataIndex] || ""
+              return `${label}\n${value.toFixed(1)}/10`
             },
           },
         },
