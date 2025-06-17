@@ -2,7 +2,6 @@
 
 import { useRef, useEffect } from "react"
 import Chart from "chart.js/auto"
-import ChartDataLabels from "chartjs-plugin-datalabels"
 
 interface DomainScore {
   id: string
@@ -25,8 +24,6 @@ function getScoreBackgroundColor(score: number): string {
   if (score >= 2) return "rgba(239, 68, 68, 0.7)" // Red for low scores
   return "rgba(156, 163, 175, 0.7)" // Gray for very low scores
 }
-
-Chart.register(ChartDataLabels)
 
 export default function AssessmentPolarChart({ domainScores }: PolarChartProps) {
   const chartRef = useRef<HTMLCanvasElement>(null)
@@ -75,10 +72,10 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
         maintainAspectRatio: true,
         layout: {
           padding: {
-            top: 60,
-            bottom: 60,
-            left: 60,
-            right: 60,
+            top: 5,
+            bottom: 5,
+            left: 5,
+            right: 5,
           },
         },
         scales: {
@@ -98,7 +95,24 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
               color: "rgba(0, 0, 0, 0.1)",
             },
             pointLabels: {
-              display: false, // Disable built-in point labels since they don't align properly
+              display: true,
+              font: {
+                size: 14,
+                weight: "600",
+              },
+              color: "#374151",
+              padding: 10,
+              callback: (label: string, index: number) => {
+                // Split long labels into multiple lines
+                if (label.length > 15) {
+                  const words = label.split(" ")
+                  if (words.length > 1) {
+                    const mid = Math.ceil(words.length / 2)
+                    return words.slice(0, mid).join(" ") + "\n" + words.slice(mid).join(" ")
+                  }
+                }
+                return label
+              },
             },
           },
         },
@@ -119,39 +133,6 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
                 const value = context.raw || 0
                 return `${label}: ${Number(value).toFixed(1)}/10`
               },
-            },
-          },
-          datalabels: {
-            display: true,
-            color: "#374151",
-            backgroundColor: "rgba(255, 255, 255, 0.9)",
-            borderColor: "#d1d5db",
-            borderWidth: 1,
-            borderRadius: 4,
-            font: {
-              size: 11,
-              weight: "600",
-            },
-            padding: {
-              top: 4,
-              bottom: 4,
-              left: 6,
-              right: 6,
-            },
-            align: "end",
-            anchor: "end",
-            offset: 20,
-            formatter: (value: number, context: any) => {
-              const label = context.chart.data.labels?.[context.dataIndex] || ""
-              // Split long labels into multiple lines for better readability
-              if (label.length > 12) {
-                const words = label.split(" ")
-                if (words.length > 1) {
-                  const mid = Math.ceil(words.length / 2)
-                  return words.slice(0, mid).join(" ") + "\n" + words.slice(mid).join(" ")
-                }
-              }
-              return label
             },
           },
         },
