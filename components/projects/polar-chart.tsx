@@ -122,7 +122,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
               weight: "bold",
             },
             padding: 6,
-            align: "start",
+            align: "end",
             anchor: "end",
             offset: 20,
             clip: false,
