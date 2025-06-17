@@ -138,8 +138,8 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
               left: 5,
               right: 5,
             },
-            align: "center",
-            anchor: "center",
+            align: "end",
+            anchor: "end",
             offset: 0,
             formatter: (value: number, context: any) => {
               const label = context.chart.data.labels?.[context.dataIndex] || ""
