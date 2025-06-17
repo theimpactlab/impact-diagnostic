@@ -75,10 +75,10 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
         maintainAspectRatio: true,
         layout: {
           padding: {
-            top: 60,
-            bottom: 60,
-            left: 60,
-            right: 60,
+            top: 80,
+            bottom: 80,
+            left: 80,
+            right: 80,
           },
         },
         scales: {
@@ -132,26 +132,27 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
           datalabels: {
             display: true,
             color: "#374151",
-            backgroundColor: "rgba(255, 255, 255, 0.9)",
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
             borderColor: "#d1d5db",
             borderWidth: 1,
-            borderRadius: 4,
+            borderRadius: 6,
             font: {
-              size: 11,
+              size: 12,
               weight: "600",
             },
             padding: {
-              top: 4,
-              bottom: 4,
-              left: 6,
-              right: 6,
+              top: 6,
+              bottom: 6,
+              left: 8,
+              right: 8,
             },
             align: "end",
             anchor: "end",
-            offset: 15, // Push labels further outside
+            offset: 20, // Increased offset for longer labels
             formatter: (value: number, context: any) => {
-              // Only show the score, not the domain name to reduce overlap
-              return `${value.toFixed(1)}`
+              // Show domain name instead of score
+              const label = context.chart.data.labels?.[context.dataIndex] || ""
+              return label
             },
             // Custom positioning to avoid overlaps
             listeners: {
@@ -179,7 +180,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
 
   if (!hasData) {
     return (
-      <div className="h-[500px] flex items-center justify-center text-muted-foreground">
+      <div className="h-[750px] flex items-center justify-center text-muted-foreground">
         <div className="text-center">
           <p>No assessment data available</p>
           <p className="text-sm">Complete domain assessments to see the polar chart</p>
@@ -189,8 +190,8 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
   }
 
   return (
-    <div className="h-[650px] w-full flex items-center justify-center">
-      <div className="aspect-square h-full max-h-[600px] w-full max-w-[600px]">
+    <div className="h-[750px] w-full flex items-center justify-center">
+      <div className="aspect-square h-full max-h-[700px] w-full max-w-[700px]">
         <canvas ref={chartRef} />
       </div>
     </div>
