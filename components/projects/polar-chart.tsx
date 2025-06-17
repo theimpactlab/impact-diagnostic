@@ -75,10 +75,10 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
         maintainAspectRatio: true,
         layout: {
           padding: {
-            top: 20,
-            bottom: 20,
-            left: 20,
-            right: 20,
+            top: 60,
+            bottom: 60,
+            left: 60,
+            right: 60,
           },
         },
         scales: {
@@ -129,23 +129,27 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
             borderWidth: 1,
             borderRadius: 4,
             font: {
-              size: 10,
+              size: 11,
               weight: "600",
             },
             padding: {
-              top: 3,
-              bottom: 3,
-              left: 5,
-              right: 5,
+              top: 4,
+              bottom: 4,
+              left: 6,
+              right: 6,
             },
             align: "end",
             anchor: "end",
-            offset: 0,
+            offset: 15,
             formatter: (value: number, context: any) => {
               const label = context.chart.data.labels?.[context.dataIndex] || ""
-              // Shorten labels to prevent overlap
-              if (label.length > 12) {
-                return label.substring(0, 12) + "..."
+              // Split long labels into multiple lines
+              if (label.length > 15) {
+                const words = label.split(" ")
+                if (words.length > 1) {
+                  const mid = Math.ceil(words.length / 2)
+                  return words.slice(0, mid).join(" ") + "\n" + words.slice(mid).join(" ")
+                }
               }
               return label
             },
