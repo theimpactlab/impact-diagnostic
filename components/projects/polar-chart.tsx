@@ -75,10 +75,10 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
         maintainAspectRatio: true,
         layout: {
           padding: {
-            top: 40,
-            bottom: 40,
-            left: 40,
-            right: 40,
+            top: 20,
+            bottom: 20,
+            left: 20,
+            right: 20,
           },
         },
         scales: {
@@ -104,15 +104,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
         },
         plugins: {
           legend: {
-            display: true,
-            position: "bottom",
-            labels: {
-              font: {
-                size: 13,
-              },
-              padding: 20,
-              usePointStyle: true,
-            },
+            display: false,
           },
           tooltip: {
             titleFont: {
@@ -132,34 +124,28 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
           datalabels: {
             display: true,
             color: "#374151",
-            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
             borderColor: "#d1d5db",
             borderWidth: 1,
-            borderRadius: 6,
+            borderRadius: 4,
             font: {
-              size: 11,
+              size: 10,
               weight: "600",
             },
             padding: {
-              top: 4,
-              bottom: 4,
-              left: 6,
-              right: 6,
+              top: 3,
+              bottom: 3,
+              left: 5,
+              right: 5,
             },
-            align: "end",
-            anchor: "end",
-            offset: 25, // Reduced from 30 since we have less padding
-            textAlign: "center",
+            align: "center",
+            anchor: "center",
+            offset: 0,
             formatter: (value: number, context: any) => {
-              // Show domain name, split long names into multiple lines
               const label = context.chart.data.labels?.[context.dataIndex] || ""
-              // Split long labels at spaces for better wrapping
-              if (label.length > 15) {
-                const words = label.split(" ")
-                if (words.length > 1) {
-                  const mid = Math.ceil(words.length / 2)
-                  return words.slice(0, mid).join(" ") + "\n" + words.slice(mid).join(" ")
-                }
+              // Shorten labels to prevent overlap
+              if (label.length > 12) {
+                return label.substring(0, 12) + "..."
               }
               return label
             },
@@ -180,7 +166,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
 
   if (!hasData) {
     return (
-      <div className="h-[900px] flex items-center justify-center text-muted-foreground">
+      <div className="h-[600px] flex items-center justify-center text-muted-foreground">
         <div className="text-center">
           <p>No assessment data available</p>
           <p className="text-sm">Complete domain assessments to see the polar chart</p>
@@ -190,8 +176,8 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
   }
 
   return (
-    <div className="h-[900px] w-full flex items-center justify-center">
-      <div className="aspect-square h-full max-h-[850px] w-full max-w-[850px]">
+    <div className="h-[600px] w-full flex items-center justify-center">
+      <div className="h-full w-full">
         <canvas ref={chartRef} />
       </div>
     </div>
