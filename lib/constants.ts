@@ -193,7 +193,7 @@ export const DOMAIN_QUESTIONS = {
     },
     {
       id: "mf_2",
-      question: "To what extend do you feel you are measuring too many things?",
+      question: "To what extent do you feel you are measuring too many things?",
       guidance: "",
       inverted: true,
     },
@@ -306,7 +306,7 @@ export const DOMAIN_QUESTIONS = {
     },
     {
       id: "sc_5",
-      question: "If applicable, Are your systems able interact with each other?",
+      question: "If applicable, are your systems able interact with each other?",
       guidance: "",
       inverted: false,
     },
