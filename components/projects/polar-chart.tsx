@@ -17,12 +17,13 @@ interface PolarChartProps {
   domainScores: DomainScore[]
 }
 
+// Color function to match scores with colors
 function getScoreBackgroundColor(score: number): string {
-  if (score >= 8) return "rgba(34, 197, 94, 0.7)" // Green
-  if (score >= 6) return "rgba(245, 158, 11, 0.7)" // Amber
-  if (score >= 4) return "rgba(245, 158, 11, 0.7)" // Amber
-  if (score >= 2) return "rgba(239, 68, 68, 0.7)"  // Red
-  return "rgba(156, 163, 175, 0.7)"                // Grey
+  if (score >= 8) return "rgba(34, 197, 94, 0.7)" // Green for high scores
+  if (score >= 6) return "rgba(245, 158, 11, 0.7)" // Amber for good scores
+  if (score >= 4) return "rgba(245, 158, 11, 0.7)" // Amber for medium scores
+  if (score >= 2) return "rgba(239, 68, 68, 0.7)" // Red for low scores
+  return "rgba(156, 163, 175, 0.7)" // Gray for very low scores
 }
 
 Chart.register(ChartDataLabels)
@@ -34,6 +35,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
   useEffect(() => {
     if (!chartRef.current) return
 
+    // Destroy existing chart
     if (chartInstance.current) {
       chartInstance.current.destroy()
     }
@@ -41,13 +43,19 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
     const ctx = chartRef.current.getContext("2d")
     if (!ctx) return
 
+    // Filter domains with scores > 0
     const validDomains = domainScores.filter((d) => d.score > 0)
-    if (validDomains.length === 0) return
 
+    if (validDomains.length === 0) {
+      return
+    }
+
+    // Prepare data for polar chart
     const labels = validDomains.map((d) => d.name)
     const data = validDomains.map((d) => d.score)
     const backgroundColors = validDomains.map((d) => getScoreBackgroundColor(d.score))
 
+    // Create polar chart
     chartInstance.current = new Chart(ctx, {
       type: "polarArea",
       data: {
@@ -124,16 +132,9 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
             padding: 6,
             align: "end",
             anchor: "end",
-            offset: 20,
-            clip: false,
-            rotation: (context) => {
-              const total = context.chart.data.labels?.length || 1
-              const index = context.dataIndex
-              return (360 / total) * index
-            },
             formatter: (value, context) => {
               const label = context.chart.data.labels?.[context.dataIndex] || ""
-              return `${label}: ${value.toFixed(1)}/10`
+              return `${label}\n${value.toFixed(1)}/10`
             },
           },
         },
@@ -147,6 +148,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
     }
   }, [domainScores])
 
+  // Check if there's any data to display
   const hasData = domainScores.some((d) => d.score > 0)
 
   if (!hasData) {
@@ -161,8 +163,8 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
   }
 
   return (
-    <div className="h-[600px] w-full flex items-center justify-center">
-      <div className="aspect-square h-full max-h-[550px] w-full max-w-[550px] p-4">
+    <div className="h-[550px] w-full flex items-center justify-center">
+      <div className="aspect-square h-full max-h-[500px] w-full max-w-[500px]">
         <canvas ref={chartRef} />
       </div>
     </div>
