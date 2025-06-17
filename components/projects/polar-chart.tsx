@@ -72,10 +72,10 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
         maintainAspectRatio: true,
         layout: {
           padding: {
-            top: 30,
-            bottom: 30,
-            left: 30,
-            right: 30,
+            top: 15,
+            bottom: 15,
+            left: 15,
+            right: 15,
           },
         },
         scales: {
