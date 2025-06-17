@@ -1,5 +1,3 @@
-"use client"
-
 import { useRef, useEffect } from "react"
 import Chart from "chart.js/auto"
 import ChartDataLabels from "chartjs-plugin-datalabels"
@@ -126,12 +124,9 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
           datalabels: {
             color: "#000",
             font: {
-              size: 10,
+              size: 12,
               weight: "bold",
             },
-            padding: 6,
-            align: "end",
-            anchor: "end",
             formatter: (value, context) => {
               const label = context.chart.data.labels?.[context.dataIndex] || ""
               return `${label}\n${value.toFixed(1)}/10`
