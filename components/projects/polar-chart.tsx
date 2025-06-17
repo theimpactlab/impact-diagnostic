@@ -126,15 +126,17 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
           datalabels: {
             color: "#000",
             font: {
-              size: 10,
+              size: 9,
               weight: "bold",
             },
-            padding: 6,
+            padding: 4,
             align: "end",
             anchor: "end",
+            offset: 10,
+            clip: false,
             formatter: (value, context) => {
               const label = context.chart.data.labels?.[context.dataIndex] || ""
-              return `${label}\n${value.toFixed(1)}/10`
+              return `${label}: ${value.toFixed(1)}`
             },
           },
         },
