@@ -194,13 +194,13 @@ export const DOMAIN_QUESTIONS = {
     {
       id: "mf_2",
       question: "To what extent do you feel you are measuring too many things?",
-      guidance: "",
+      guidance: "Please note this scale has been inverted for assessment purposes",
       inverted: true,
     },
     {
       id: "mf_3",
       question: "To what extent do you feel that you are collecting only output rather than outcome measures?",
-      guidance: "",
+      guidance: "Please note this scale has been inverted for assessment purposes",
       inverted: true,
     },
     {
