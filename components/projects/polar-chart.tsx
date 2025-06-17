@@ -72,10 +72,10 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
         maintainAspectRatio: true,
         layout: {
           padding: {
-            top: 80,
-            bottom: 80,
-            left: 80,
-            right: 80,
+            top: 30,
+            bottom: 30,
+            left: 30,
+            right: 30,
           },
         },
         scales: {
@@ -101,7 +101,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
                 weight: "600",
               },
               color: "#374151",
-              padding: 20,
+              padding: 10,
               callback: (label: string, index: number) => {
                 // Split long labels into multiple lines
                 if (label.length > 15) {
