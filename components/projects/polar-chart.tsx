@@ -75,10 +75,10 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
         maintainAspectRatio: true,
         layout: {
           padding: {
-            top: 100,
-            bottom: 100,
-            left: 100,
-            right: 100,
+            top: 40,
+            bottom: 40,
+            left: 40,
+            right: 40,
           },
         },
         scales: {
@@ -148,7 +148,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
             },
             align: "end",
             anchor: "end",
-            offset: 30, // Much larger offset to push labels further out
+            offset: 25, // Reduced from 30 since we have less padding
             textAlign: "center",
             formatter: (value: number, context: any) => {
               // Show domain name, split long names into multiple lines
@@ -180,7 +180,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
 
   if (!hasData) {
     return (
-      <div className="h-[800px] flex items-center justify-center text-muted-foreground">
+      <div className="h-[900px] flex items-center justify-center text-muted-foreground">
         <div className="text-center">
           <p>No assessment data available</p>
           <p className="text-sm">Complete domain assessments to see the polar chart</p>
@@ -190,8 +190,8 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
   }
 
   return (
-    <div className="h-[800px] w-full flex items-center justify-center">
-      <div className="aspect-square h-full max-h-[750px] w-full max-w-[750px]">
+    <div className="h-[900px] w-full flex items-center justify-center">
+      <div className="aspect-square h-full max-h-[850px] w-full max-w-[850px]">
         <canvas ref={chartRef} />
       </div>
     </div>
