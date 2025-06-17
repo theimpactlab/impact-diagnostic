@@ -47,7 +47,6 @@ export default function RegisterForm() {
           data: {
             full_name: values.name,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
 
