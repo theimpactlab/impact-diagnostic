@@ -72,10 +72,10 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
         maintainAspectRatio: true,
         layout: {
           padding: {
-            top: 15,
-            bottom: 15,
-            left: 15,
-            right: 15,
+            top: 5,
+            bottom: 5,
+            left: 5,
+            right: 5,
           },
         },
         scales: {
@@ -97,7 +97,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
             pointLabels: {
               display: true,
               font: {
-                size: 12,
+                size: 10,
                 weight: "600",
               },
               color: "#374151",
