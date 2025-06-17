@@ -162,7 +162,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
 
   return (
     <div className="h-[700px] w-full flex items-center justify-center">
-      <div className="h-full w-full">
+      <div className="h-full w-full max-w-[700px] mx-auto flex items-center justify-center">
         <canvas ref={chartRef} />
       </div>
     </div>
