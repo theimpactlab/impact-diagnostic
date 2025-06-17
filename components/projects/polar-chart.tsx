@@ -73,6 +73,14 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
       options: {
         responsive: true,
         maintainAspectRatio: true,
+        layout: {
+          padding: {
+            top: 60,
+            bottom: 60,
+            left: 60,
+            right: 60,
+          },
+        },
         scales: {
           r: {
             beginAtZero: true,
@@ -90,9 +98,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
               color: "rgba(0, 0, 0, 0.1)",
             },
             pointLabels: {
-              font: {
-                size: 13,
-              },
+              display: false, // Hide default point labels to avoid confusion
             },
           },
         },
@@ -124,17 +130,37 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
             },
           },
           datalabels: {
-            color: "#000",
+            display: true,
+            color: "#374151",
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
+            borderColor: "#d1d5db",
+            borderWidth: 1,
+            borderRadius: 4,
             font: {
-              size: 10,
-              weight: "bold",
+              size: 11,
+              weight: "600",
             },
-            padding: 6,
+            padding: {
+              top: 4,
+              bottom: 4,
+              left: 6,
+              right: 6,
+            },
             align: "end",
             anchor: "end",
-            formatter: (value, context) => {
-              const label = context.chart.data.labels?.[context.dataIndex] || ""
-              return `${label}\n${value.toFixed(1)}/10`
+            offset: 15, // Push labels further outside
+            formatter: (value: number, context: any) => {
+              // Only show the score, not the domain name to reduce overlap
+              return `${value.toFixed(1)}`
+            },
+            // Custom positioning to avoid overlaps
+            listeners: {
+              enter: (context: any) => {
+                context.hovered = true
+              },
+              leave: (context: any) => {
+                context.hovered = false
+              },
             },
           },
         },
@@ -163,8 +189,8 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
   }
 
   return (
-    <div className="h-[550px] w-full flex items-center justify-center">
-      <div className="aspect-square h-full max-h-[500px] w-full max-w-[500px]">
+    <div className="h-[650px] w-full flex items-center justify-center">
+      <div className="aspect-square h-full max-h-[600px] w-full max-w-[600px]">
         <canvas ref={chartRef} />
       </div>
     </div>
