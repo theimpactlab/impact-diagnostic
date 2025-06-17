@@ -2,7 +2,6 @@
 
 import { useRef, useEffect } from "react"
 import Chart from "chart.js/auto"
-import ChartDataLabels from "chartjs-plugin-datalabels"
 
 interface DomainScore {
   id: string
@@ -25,8 +24,6 @@ function getScoreBackgroundColor(score: number): string {
   if (score >= 2) return "rgba(239, 68, 68, 0.7)" // Red for low scores
   return "rgba(156, 163, 175, 0.7)" // Gray for very low scores
 }
-
-Chart.register(ChartDataLabels)
 
 export default function AssessmentPolarChart({ domainScores }: PolarChartProps) {
   const chartRef = useRef<HTMLCanvasElement>(null)
@@ -75,10 +72,10 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
         maintainAspectRatio: true,
         layout: {
           padding: {
-            top: 60,
-            bottom: 60,
-            left: 60,
-            right: 60,
+            top: 80,
+            bottom: 80,
+            left: 80,
+            right: 80,
           },
         },
         scales: {
@@ -98,7 +95,24 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
               color: "rgba(0, 0, 0, 0.1)",
             },
             pointLabels: {
-              display: false, // Hide default point labels to avoid confusion
+              display: true,
+              font: {
+                size: 12,
+                weight: "600",
+              },
+              color: "#374151",
+              padding: 20,
+              callback: (label: string, index: number) => {
+                // Split long labels into multiple lines
+                if (label.length > 15) {
+                  const words = label.split(" ")
+                  if (words.length > 1) {
+                    const mid = Math.ceil(words.length / 2)
+                    return words.slice(0, mid).join(" ") + "\n" + words.slice(mid).join(" ")
+                  }
+                }
+                return label
+              },
             },
           },
         },
@@ -121,39 +135,6 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
               },
             },
           },
-          datalabels: {
-            display: true,
-            color: "#374151",
-            backgroundColor: "rgba(255, 255, 255, 0.9)",
-            borderColor: "#d1d5db",
-            borderWidth: 1,
-            borderRadius: 4,
-            font: {
-              size: 11,
-              weight: "600",
-            },
-            padding: {
-              top: 4,
-              bottom: 4,
-              left: 6,
-              right: 6,
-            },
-            align: "end",
-            anchor: "end",
-            offset: 15,
-            formatter: (value: number, context: any) => {
-              const label = context.chart.data.labels?.[context.dataIndex] || ""
-              // Split long labels into multiple lines
-              if (label.length > 15) {
-                const words = label.split(" ")
-                if (words.length > 1) {
-                  const mid = Math.ceil(words.length / 2)
-                  return words.slice(0, mid).join(" ") + "\n" + words.slice(mid).join(" ")
-                }
-              }
-              return label
-            },
-          },
         },
       },
     })
@@ -170,7 +151,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
 
   if (!hasData) {
     return (
-      <div className="h-[600px] flex items-center justify-center text-muted-foreground">
+      <div className="h-[700px] flex items-center justify-center text-muted-foreground">
         <div className="text-center">
           <p>No assessment data available</p>
           <p className="text-sm">Complete domain assessments to see the polar chart</p>
@@ -180,7 +161,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
   }
 
   return (
-    <div className="h-[600px] w-full flex items-center justify-center">
+    <div className="h-[700px] w-full flex items-center justify-center">
       <div className="h-full w-full">
         <canvas ref={chartRef} />
       </div>
