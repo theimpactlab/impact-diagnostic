@@ -75,10 +75,10 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
         maintainAspectRatio: true,
         layout: {
           padding: {
-            top: 80,
-            bottom: 80,
-            left: 80,
-            right: 80,
+            top: 100,
+            bottom: 100,
+            left: 100,
+            right: 100,
           },
         },
         scales: {
@@ -137,31 +137,31 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
             borderWidth: 1,
             borderRadius: 6,
             font: {
-              size: 12,
+              size: 11,
               weight: "600",
             },
             padding: {
-              top: 6,
-              bottom: 6,
-              left: 8,
-              right: 8,
+              top: 4,
+              bottom: 4,
+              left: 6,
+              right: 6,
             },
             align: "end",
             anchor: "end",
-            offset: 20, // Increased offset for longer labels
+            offset: 30, // Much larger offset to push labels further out
+            textAlign: "center",
             formatter: (value: number, context: any) => {
-              // Show domain name instead of score
+              // Show domain name, split long names into multiple lines
               const label = context.chart.data.labels?.[context.dataIndex] || ""
+              // Split long labels at spaces for better wrapping
+              if (label.length > 15) {
+                const words = label.split(" ")
+                if (words.length > 1) {
+                  const mid = Math.ceil(words.length / 2)
+                  return words.slice(0, mid).join(" ") + "\n" + words.slice(mid).join(" ")
+                }
+              }
               return label
-            },
-            // Custom positioning to avoid overlaps
-            listeners: {
-              enter: (context: any) => {
-                context.hovered = true
-              },
-              leave: (context: any) => {
-                context.hovered = false
-              },
             },
           },
         },
@@ -180,7 +180,7 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
 
   if (!hasData) {
     return (
-      <div className="h-[750px] flex items-center justify-center text-muted-foreground">
+      <div className="h-[800px] flex items-center justify-center text-muted-foreground">
         <div className="text-center">
           <p>No assessment data available</p>
           <p className="text-sm">Complete domain assessments to see the polar chart</p>
@@ -190,8 +190,8 @@ export default function AssessmentPolarChart({ domainScores }: PolarChartProps) 
   }
 
   return (
-    <div className="h-[750px] w-full flex items-center justify-center">
-      <div className="aspect-square h-full max-h-[700px] w-full max-w-[700px]">
+    <div className="h-[800px] w-full flex items-center justify-center">
+      <div className="aspect-square h-full max-h-[750px] w-full max-w-[750px]">
         <canvas ref={chartRef} />
       </div>
     </div>
