@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { supabase } from "@/lib/supabase/client"
+import { signUp } from "@/app/actions/signup"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -40,32 +40,33 @@ export default function RegisterForm() {
     setIsLoading(true)
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-        options: {
-          data: {
-            full_name: values.name,
-          },
-        },
-      })
+      const formData = new FormData()
+      formData.append("email", values.email)
+      formData.append("password", values.password)
+      formData.append("fullName", values.name)
 
-      if (error) {
-        throw error
+      const result = await signUp(formData)
+
+      if (result.error) {
+        toast({
+          title: "Error creating account",
+          description: result.error,
+          variant: "destructive",
+        })
+      } else if (result.success) {
+        toast({
+          title: "Account created",
+          description: result.success,
+        })
+
+        // Reset form
+        form.reset()
+
+        // Redirect to login page after a short delay
+        setTimeout(() => {
+          router.push("/login")
+        }, 2000)
       }
-
-      toast({
-        title: "Account created",
-        description: "Please check your email to verify your account.",
-      })
-
-      // Reset form
-      form.reset()
-
-      // Redirect to login page after a short delay
-      setTimeout(() => {
-        router.push("/login")
-      }, 2000)
     } catch (error: any) {
       console.error("Registration error:", error)
       toast({

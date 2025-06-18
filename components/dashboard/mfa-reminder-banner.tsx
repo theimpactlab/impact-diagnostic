@@ -4,11 +4,12 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { supabase } from "@/lib/supabase/client"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
 export default function MFAReminderBanner() {
     const [showBanner, setShowBanner] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
+    const supabase = createClientComponentClient()
 
     useEffect(() => {
         checkMFAStatus()
@@ -25,7 +26,7 @@ export default function MFAReminderBanner() {
             }
 
             // Check if user has any verified MFA factors
-            const hasVerifiedMFA = factors?.all?.some(factor => factor.status === 'verified') || false
+            const hasVerifiedMFA = factors?.all?.some((factor: any) => factor.status === 'verified') || false
 
             // Show banner only if MFA is not enabled
             setShowBanner(!hasVerifiedMFA)

@@ -18,6 +18,8 @@ export async function middleware(request: NextRequest) {
     "/signup",
     "/forgot-password",
     "/reset-password",
+    "/features",
+    "/register",
   ]
 
   const isPublicRoute = publicRoutes.some((route) => {

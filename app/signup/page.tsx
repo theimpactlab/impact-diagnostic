@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { signUp } from "@/app/actions/signup"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -21,7 +21,6 @@ export default function SignupPage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const { toast } = useToast()
   const router = useRouter()
-  const supabase = createClientComponentClient()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -29,34 +28,29 @@ export default function SignupPage() {
     setMessage(null)
 
     try {
-      // Sign up with email and password
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
+      const formData = new FormData()
+      formData.append("email", email)
+      formData.append("password", password)
+      formData.append("fullName", fullName)
 
-      if (error) {
-        console.error("Registration error:", error)
-        setMessage({ type: "error", text: error.message })
+      const result = await signUp(formData)
+
+      if (result.error) {
+        console.error("Registration error:", result.error)
+        setMessage({ type: "error", text: result.error })
         toast({
           title: "Error creating account",
-          description: error.message,
+          description: result.error,
           variant: "destructive",
         })
-      } else {
+      } else if (result.success) {
         setMessage({
           type: "success",
-          text: "Registration successful! Check your email to confirm your account.",
+          text: result.success,
         })
         toast({
           title: "Account created",
-          description: "Check your email to confirm your account.",
+          description: result.success,
         })
 
         // Clear form
@@ -88,16 +82,16 @@ export default function SignupPage() {
   return (
     <div className="container max-w-md py-10">
       <Button asChild variant="ghost" size="sm" className="mb-6">
-        <Link href="/">
+        <Link href="/login">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Home
+          Back to Login
         </Link>
       </Button>
 
       <Card>
         <CardHeader>
           <CardTitle>Create an Account</CardTitle>
-          <CardDescription>Sign up to get started with the Impact Diagnostic Tool</CardDescription>
+          <CardDescription>Enter your information to create your account.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -112,6 +106,7 @@ export default function SignupPage() {
                 autoComplete="name"
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -123,6 +118,7 @@ export default function SignupPage() {
                 autoComplete="email"
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -131,10 +127,9 @@ export default function SignupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={8}
+                minLength={6}
                 autoComplete="new-password"
               />
-              <p className="text-xs text-muted-foreground">Password must be at least 8 characters long</p>
             </div>
 
             {message && (
@@ -149,14 +144,16 @@ export default function SignupPage() {
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? "Creating Account..." : "Create Account"}
             </Button>
-
-            <div className="text-center text-sm">
-              Already have an account?{" "}
-              <Link href="/login" className="text-primary hover:underline">
-                Log in
-              </Link>
-            </div>
           </form>
+
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600">
+              Already have an account?{" "}
+              <Link href="/login" className="text-blue-600 hover:underline">
+                Sign in
+              </Link>
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

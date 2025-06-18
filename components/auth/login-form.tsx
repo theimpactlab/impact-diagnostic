@@ -1,8 +1,8 @@
 "use client"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
-import { supabase } from "@/lib/supabase/client"
+import { useSearchParams, useRouter } from "next/navigation"
+import { login } from "@/app/actions/login"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AlertCircle } from "lucide-react"
@@ -11,6 +11,7 @@ import MFAVerificationForm from "./mfa-verification-form"
 
 export default function LoginForm() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const redirectTo = searchParams.get("redirectTo") || "/dashboard"
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -28,53 +29,29 @@ export default function LoginForm() {
     setError(null)
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      const formData = new FormData()
+      formData.append("email", email)
+      formData.append("password", password)
+      formData.append("redirectTo", redirectTo)
 
-      if (error) {
-        throw error
-      }
+      const result = await login(formData)
 
-      // Verify we have a session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-      if (!session) {
-        throw new Error("No session created after login")
-      }
-
-      // Check if MFA is required
-      const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors()
-
-      if (factorsError) {
-        throw factorsError
-      }
-
-      const totpFactor = factors?.totp?.find(factor => factor.status === 'verified')
-
-      if (totpFactor) {
-        // MFA is required, challenge the user
-        const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
-          factorId: totpFactor.id
-        })
-
-        if (challengeError) {
-          throw challengeError
-        }
-
+      if (result?.error) {
+        setError(result.error)
+      } else if (result?.requiresMFA) {
         setMfaData({
-          factorId: totpFactor.id,
-          challengeId: challengeData.id,
-          redirectTo
+          factorId: result.factorId,
+          challengeId: result.challengeId,
+          redirectTo: result.redirectTo,
         })
+      } else if (result?.success && result?.redirectTo) {
+        // Successful login without MFA, redirect to dashboard
+        router.push(result.redirectTo)
         return
       }
-
-      // No MFA required, redirect to the intended destination
-      window.location.href = redirectTo
     } catch (err: any) {
-      setError(err.message)
+      console.error("Login error:", err)
+      setError("An unexpected error occurred during login")
     } finally {
       setIsLoading(false)
     }
