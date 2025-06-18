@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { supabase } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -25,37 +25,44 @@ export default function SignOutButton({
   const [isSigningOut, setIsSigningOut] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
-  const supabase = createClientComponentClient()
 
   const handleSignOut = async () => {
     setIsSigningOut(true)
 
     try {
-      // First try the client-side sign out
-      const { error } = await supabase.auth.signOut()
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut({
+        scope: 'global'  // Sign out from all sessions
+      })
 
       if (error) {
-        console.error("Error signing out:", error)
-        toast({
-          title: "Error",
-          description: "Failed to sign out. Please try again.",
-          variant: "destructive",
-        })
-      } else {
-        toast({
-          title: "Signed out",
-          description: "You have been successfully signed out.",
-        })
-
-        // Redirect to home page
-        router.push("/")
-        router.refresh()
+        throw error
       }
-    } catch (error) {
-      console.error("Unexpected error during sign out:", error)
 
-      // If client-side sign out fails, try redirecting to the API route
-      window.location.href = "/api/auth/signout"
+      // Clear any local storage items
+      localStorage.removeItem('impact-diagnostic-auth')
+
+      // Clear all cookies
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
+      })
+
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      })
+
+      // Force a hard redirect to login page
+      window.location.href = "/login"
+    } catch (error: any) {
+      console.error("Error signing out:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sign out. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsSigningOut(false)
     }

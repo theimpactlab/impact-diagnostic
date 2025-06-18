@@ -92,9 +92,8 @@ export default function ForgotPasswordPage() {
 
             {message && (
               <div
-                className={`p-3 rounded-md ${
-                  message.type === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
-                }`}
+                className={`p-3 rounded-md ${message.type === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
+                  }`}
               >
                 {message.text}
               </div>

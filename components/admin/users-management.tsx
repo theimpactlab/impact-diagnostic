@@ -84,11 +84,11 @@ export default function UsersManagement({ users: initialUsers, organizations }: 
         prev.map((user) =>
           user.id === editingUser.id
             ? {
-                ...user,
-                organization_id: values.organization_id,
-                organization_name: organization?.name || null,
-                is_super_user: values.is_super_user,
-              }
+              ...user,
+              organization_id: values.organization_id,
+              organization_name: organization?.name || null,
+              is_super_user: values.is_super_user,
+            }
             : user,
         ),
       )
