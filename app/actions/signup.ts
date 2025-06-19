@@ -15,9 +15,9 @@ export async function signUp(formData: FormData) {
         }
     }
 
-    if (password.length < 6) {
+    if (password.length < 12) {
         return {
-            error: "Password must be at least 6 characters",
+            error: "Password must be at least 12 characters",
         }
     }
 

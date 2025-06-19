@@ -29,10 +29,10 @@ export default function PasswordForm() {
     }
 
     // Validate password length
-    if (newPassword.length < 8) {
+    if (newPassword.length < 12) {
       toast({
         title: "Error",
-        description: "Password must be at least 8 characters long",
+        description: "Password must be at least 12 characters long",
         variant: "destructive",
       })
       return

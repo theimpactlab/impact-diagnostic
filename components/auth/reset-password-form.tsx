@@ -13,11 +13,11 @@ import { toast } from "@/hooks/use-toast"
 
 const formSchema = z
   .object({
-    password: z.string().min(6, {
-      message: "Password must be at least 6 characters.",
+    password: z.string().min(12, {
+      message: "Password must be at least 12 characters.",
     }),
-    confirmPassword: z.string().min(6, {
-      message: "Password must be at least 6 characters.",
+    confirmPassword: z.string().min(12, {
+      message: "Password must be at least 12 characters.",
     }),
   })
   .refine((data) => data.password === data.confirmPassword, {
