@@ -17,58 +17,47 @@ export default function MakeSuperUserPage() {
   const router = useRouter()
   const supabase = createClientComponentClient()
 
-  const makeSuperUser = async () => {
+  const handleMakeSuperUser = async () => {
     setIsLoading(true)
     try {
       // Get current user
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in",
-          variant: "destructive",
-        })
-        return
+      if (userError || !user) {
+        throw new Error("Not authenticated")
       }
 
-      // Update the profile to be a super user
-      const { data, error } = await supabase.from("profiles").update({ is_super_user: true }).eq("id", user.id).select()
+      // Update the user's profile to make them a super user
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ is_super_user: true })
+        .eq('id', user.id)
+        .select('id, email, is_super_user')
+        .single()
 
       if (error) {
-        console.error("Error updating profile:", error)
-        setResult({
-          success: false,
-          message: `Failed to update: ${error.message}`,
-          error,
-        })
-        toast({
-          title: "Error",
-          description: `Failed to make super user: ${error.message}`,
-          variant: "destructive",
-        })
-      } else {
-        setResult({
-          success: true,
-          message: "Successfully updated your profile to super user!",
-          data,
-        })
-        toast({
-          title: "Success",
-          description: "You are now a super user!",
-        })
+        throw new Error(error.message)
       }
-    } catch (error) {
-      console.error("Unexpected error:", error)
+
+      setResult({
+        success: true,
+        message: "Successfully granted super user privileges!",
+        data: data,
+      })
+
+      toast({
+        title: "Success",
+        description: "You are now a super user!",
+      })
+    } catch (error: any) {
+      console.error("Error making super user:", error)
       setResult({
         success: false,
-        message: `Unexpected error: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: error.message || "An unexpected error occurred",
       })
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       })
     } finally {
@@ -110,7 +99,7 @@ export default function MakeSuperUserPage() {
             </AlertDescription>
           </Alert>
 
-          <Button onClick={makeSuperUser} disabled={isLoading} className="w-full">
+          <Button onClick={handleMakeSuperUser} disabled={isLoading} className="w-full">
             {isLoading ? "Processing..." : "Make Me Super User"}
           </Button>
 

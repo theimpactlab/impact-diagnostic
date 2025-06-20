@@ -3,6 +3,7 @@ import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import DashboardNav from "@/components/dashboard/dashboard-nav"
+import MFAReminderBanner from "@/components/dashboard/mfa-reminder-banner"
 
 export const dynamic = "force-dynamic"
 
@@ -41,7 +42,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-screen flex-col">
       <DashboardNav user={currentUser} />
-      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-6xl">{children}</main>
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-6xl">
+        <MFAReminderBanner />
+        {children}
+      </main>
     </div>
   )
 }

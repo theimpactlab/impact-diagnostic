@@ -4,10 +4,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ProfileForm from "@/components/profile/profile-form"
 import PasswordForm from "@/components/profile/password-form"
 import NotificationsForm from "@/components/profile/notifications-form"
+import MFAForm from "@/components/profile/mfa-form"
 
 export const dynamic = "force-dynamic"
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams
+}: {
+  searchParams: { tab?: string }
+}) {
   const cookieStore = cookies()
   const supabase = createServerComponentClient({ cookies: () => cookieStore })
 
@@ -44,31 +49,35 @@ export default async function ProfilePage() {
   // Combine profile and organization data
   const profileWithOrg = profile
     ? {
-        ...profile,
-        organizations: organization,
-      }
+      ...profile,
+      organizations: organization,
+    }
     : {
-        id: session.user.id,
-        email: session.user.email,
-        full_name: "",
-        username: "",
-        avatar_url: null,
-        is_super_user: false,
-        organizations: null,
-      }
+      id: session.user.id,
+      email: session.user.email,
+      full_name: "",
+      username: "",
+      avatar_url: null,
+      is_super_user: false,
+      organizations: null,
+    }
 
   // Get all organizations
   const { data: organizations } = await supabase.from("organizations").select("*").order("name")
+
+  // Determine the default tab from search params
+  const defaultTab = searchParams.tab === 'mfa' ? 'mfa' : 'profile'
 
   return (
     <div>
       <h1 className="text-3xl font-bold tracking-tight mb-8">Your Profile</h1>
 
-      <Tabs defaultValue="profile" className="space-y-6">
+      <Tabs defaultValue={defaultTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="password">Password</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="mfa">MFA</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -86,6 +95,12 @@ export default async function ProfilePage() {
         <TabsContent value="notifications">
           <div className="max-w-2xl">
             <NotificationsForm userId={session.user.id} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="mfa">
+          <div className="max-w-2xl">
+            <MFAForm />
           </div>
         </TabsContent>
       </Tabs>

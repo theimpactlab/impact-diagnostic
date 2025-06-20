@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { resetPassword } from "@/app/actions/reset-password"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,29 +9,57 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 
 export default function PasswordForm() {
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
+  const supabase = createClientComponentClient()
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate password length
+    if (newPassword.length < 12) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 12 characters long",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
-      const result = await resetPassword(formData)
+      // Use secure client-side Supabase auth update
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      })
 
-      if (result.error) {
+      if (error) {
         toast({
           title: "Error",
-          description: result.error,
+          description: error.message,
           variant: "destructive",
         })
-      } else if (result.success) {
+      } else {
         toast({
           title: "Success",
-          description: result.success,
+          description: "Your password has been updated successfully",
         })
         // Reset the form
-        const form = document.getElementById("password-form") as HTMLFormElement
-        form.reset()
+        setNewPassword("")
+        setConfirmPassword("")
       }
     } catch (error) {
       toast({
@@ -51,13 +79,14 @@ export default function PasswordForm() {
         <CardDescription>Update your password. You won't need to enter your current password.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form id="password-form" action={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="new_password">New Password</Label>
             <Input
               id="new_password"
-              name="new_password"
               type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
               required
               minLength={8}
               autoComplete="new-password"
@@ -67,8 +96,9 @@ export default function PasswordForm() {
             <Label htmlFor="confirm_password">Confirm New Password</Label>
             <Input
               id="confirm_password"
-              name="confirm_password"
               type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={8}
               autoComplete="new-password"

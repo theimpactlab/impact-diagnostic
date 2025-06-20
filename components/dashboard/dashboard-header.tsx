@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Shield, User } from "lucide-react"
-import { supabase } from "@/lib/supabase/client"
+import { signOut } from "@/app/actions/signout"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -14,37 +14,52 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useToast } from "@/hooks/use-toast"
 
-export default function DashboardHeader() {
+interface DashboardHeaderProps {
+  isSuperUser?: boolean
+  userName?: string
+}
+
+export default function DashboardHeader({ isSuperUser = false, userName }: DashboardHeaderProps) {
   const router = useRouter()
-  const [isSuperUser, setIsSuperUser] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    async function checkUserRole() {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-
-        if (user) {
-          const { data } = await supabase.from("profiles").select("is_super_user").eq("id", user.id).single()
-
-          setIsSuperUser(!!data?.is_super_user)
-        }
-      } catch (error) {
-        console.error("Error checking user role:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkUserRole()
-  }, [])
+  const [isSigningOut, setIsSigningOut] = useState(false)
+  const { toast } = useToast()
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/login")
+    setIsSigningOut(true)
+
+    try {
+      const result = await signOut()
+
+      if (result?.error) {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to sign out. Please try again.",
+          variant: "destructive",
+        })
+      }
+      // If successful, the server action will redirect
+    } catch (error: any) {
+      // Check if this is a Next.js redirect (which is expected behavior)
+      if (error?.message?.includes('NEXT_REDIRECT') || error?.digest?.includes('NEXT_REDIRECT')) {
+        // This is a successful redirect, not an error
+        toast({
+          title: "Signed out",
+          description: "You have been successfully signed out.",
+        })
+        return
+      }
+
+      console.error("Error signing out:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sign out. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSigningOut(false)
+    }
   }
 
   return (
@@ -61,12 +76,12 @@ export default function DashboardHeader() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuLabel>{userName ? `Hello, ${userName}` : "My Account"}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <Link href="/profile">Profile</Link>
           </DropdownMenuItem>
-          {isSuperUser && !isLoading && (
+          {isSuperUser && (
             <DropdownMenuItem asChild>
               <Link href="/admin">
                 <Shield className="h-4 w-4 mr-2" />
@@ -74,7 +89,9 @@ export default function DashboardHeader() {
               </Link>
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onClick={handleSignOut}>Log out</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleSignOut} disabled={isSigningOut}>
+            {isSigningOut ? "Signing out..." : "Log out"}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
