@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { supabase } from "@/lib/supabase/client"
+import { updatePassword } from "@/app/actions/password-update"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -13,11 +13,11 @@ import { toast } from "@/hooks/use-toast"
 
 const formSchema = z
   .object({
-    password: z.string().min(6, {
-      message: "Password must be at least 6 characters.",
+    password: z.string().min(12, {
+      message: "Password must be at least 12 characters.",
     }),
-    confirmPassword: z.string().min(6, {
-      message: "Password must be at least 6 characters.",
+    confirmPassword: z.string().min(12, {
+      message: "Password must be at least 12 characters.",
     }),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -41,21 +41,27 @@ export default function ResetPasswordForm() {
     setIsLoading(true)
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: values.password,
-      })
+      const formData = new FormData()
+      formData.append("password", values.password)
+      formData.append("confirmPassword", values.confirmPassword)
 
-      if (error) {
-        throw error
+      const result = await updatePassword(formData)
+
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        })
+      } else if (result.success) {
+        toast({
+          title: "Password updated",
+          description: result.success,
+        })
+
+        // Redirect to dashboard
+        router.push("/dashboard")
       }
-
-      toast({
-        title: "Password updated",
-        description: "Your password has been updated successfully.",
-      })
-
-      // Redirect to dashboard
-      router.push("/dashboard")
     } catch (error: any) {
       console.error("Password reset error:", error)
       toast({

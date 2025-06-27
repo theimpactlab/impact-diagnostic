@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { forgotPassword } from "@/app/actions/forgot-password"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -17,7 +17,6 @@ export default function ForgotPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const { toast } = useToast()
-  const supabase = createClientComponentClient()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -25,25 +24,26 @@ export default function ForgotPasswordPage() {
     setMessage(null)
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
-      })
+      const formData = new FormData()
+      formData.append("email", email)
 
-      if (error) {
-        setMessage({ type: "error", text: error.message })
+      const result = await forgotPassword(formData)
+
+      if (result.error) {
+        setMessage({ type: "error", text: result.error })
         toast({
           title: "Error",
-          description: error.message,
+          description: result.error,
           variant: "destructive",
         })
-      } else {
+      } else if (result.success) {
         setMessage({
           type: "success",
-          text: "Check your email for a password reset link",
+          text: result.success,
         })
         toast({
           title: "Success",
-          description: "Check your email for a password reset link",
+          description: result.success,
         })
         setEmail("")
       }
@@ -92,9 +92,8 @@ export default function ForgotPasswordPage() {
 
             {message && (
               <div
-                className={`p-3 rounded-md ${
-                  message.type === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
-                }`}
+                className={`p-3 rounded-md ${message.type === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
+                  }`}
               >
                 {message.text}
               </div>
