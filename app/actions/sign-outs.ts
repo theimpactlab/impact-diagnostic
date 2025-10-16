@@ -19,11 +19,17 @@ export async function signOut() {
     // Clear any additional cookies if needed
     const cookieStore = cookies()
 
-    // Redirect to home page
-    redirect("/")
-  } catch (error) {
+    // Redirect to login page
+    redirect("/login")
+  } catch (error: any) {
+    // Check if this is a Next.js redirect (which is expected behavior)
+    if (error?.message?.includes('NEXT_REDIRECT') || error?.digest?.includes('NEXT_REDIRECT')) {
+      // This is expected behavior from redirect(), re-throw it
+      throw error
+    }
+
     console.error("Unexpected error during sign out:", error)
-    // Even if there's an error, redirect to home
-    redirect("/")
+    // Even if there's an error, redirect to login
+    redirect("/login")
   }
 }

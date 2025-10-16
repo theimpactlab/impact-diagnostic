@@ -88,11 +88,10 @@ export default function DashboardNav({ user }: DashboardNavProps) {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
-                    isActive
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:border-gray-300 hover:text-gray-700"
-                  }`}
+                  className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${isActive
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:border-gray-300 hover:text-gray-700"
+                    }`}
                 >
                   <Icon className="h-4 w-4 mr-2" />
                   {item.name}
