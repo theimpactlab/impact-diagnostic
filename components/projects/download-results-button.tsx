@@ -78,6 +78,4 @@ export default function DownloadResultsButton({
       Download Results
     </Button>
   )
-  \
 }
-
