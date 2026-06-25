@@ -6,7 +6,7 @@ export default async function ServerArrayFormatTest() {
   let error = null
 
   try {
-    const supabase = createArrayFormatServerClient()
+    const supabase = await createArrayFormatServerClient()
     const { data, error: authError } = await supabase.auth.getUser()
 
     if (authError) {

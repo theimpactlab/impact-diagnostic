@@ -14,7 +14,7 @@ interface ProjectPageProps {
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const supabase = createServerComponentClient({ cookies: () => cookieStore })
 
   const {
