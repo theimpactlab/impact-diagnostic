@@ -11,6 +11,9 @@ export async function createServerSupabaseClient() {
     {
       cookies: {
         getAll() {
+          return cookieStore
+            .getAll()
+            .filter((cookie) => !(cookie.name.endsWith("-auth-token") && cookie.value.startsWith("base64-")))
           return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
@@ -24,6 +27,7 @@ export async function createServerSupabaseClient() {
           }
         },
       },
+      cookieEncoding: "raw",
       auth: {
         flowType: "pkce",
         autoRefreshToken: true,

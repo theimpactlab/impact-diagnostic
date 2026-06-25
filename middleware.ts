@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server"
 import type { Database } from "@/types/supabase"
 
 export async function middleware(request: NextRequest) {
+  let res = NextResponse.next({ request })
   let res = NextResponse.next({
     request: {
       headers: request.headers,
@@ -81,6 +82,33 @@ export async function middleware(request: NextRequest) {
   ) {
     return res
   }
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookieEncoding: "raw",
+      cookies: {
+        getAll() {
+          return request.cookies
+            .getAll()
+            .filter((cookie) => !(cookie.name.endsWith("-auth-token") && cookie.value.startsWith("base64-")))
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          res = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) => {
+            res.cookies.set(name, value, options)
+          })
+        },
+      },
+    },
+  )
+
+  // Refresh session if expired
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
 
   // If no session and trying to access protected route, redirect to login
   if (!session) {
