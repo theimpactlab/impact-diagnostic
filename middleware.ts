@@ -4,7 +4,53 @@ import type { NextRequest } from "next/server"
 import type { Database } from "@/types/supabase"
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request })
+  let res = NextResponse.next({ request })
+  let res = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: any) {
+          res = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          res.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: any) {
+          res = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          res.cookies.set({
+            name,
+            value: "",
+            ...options,
+          })
+        },
+      },
+    },
+  )
+
+  // Refresh session if expired
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
 
   // Define public routes that don't require authentication
   const publicRoutes = [
@@ -37,7 +83,7 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  const supabase = createServerClient<Database>(
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -50,9 +96,9 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
+          res = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options)
+            res.cookies.set(name, value, options)
           })
         },
       },
@@ -61,7 +107,7 @@ export async function middleware(request: NextRequest) {
 
   // Refresh session if expired
   const {
-    data: { session: currentSession },
+    data: { session },
   } = await supabase.auth.getSession()
 
   // If no session and trying to access protected route, redirect to login

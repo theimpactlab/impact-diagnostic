@@ -14,7 +14,7 @@ interface DomainPageProps {
 }
 
 export default async function DomainPage({ params }: DomainPageProps) {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const supabase = createServerComponentClient({ cookies: () => cookieStore })
 
   // Get project details
