@@ -5,7 +5,7 @@ import ForgotPasswordForm from "@/components/auth/forgot-password-form"
 import LandingNavbar from "@/components/landing/landing-navbar"
 
 export default async function ForgotPasswordPage() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const {
     data: { session },

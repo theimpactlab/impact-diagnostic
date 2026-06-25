@@ -5,7 +5,7 @@ import RegisterForm from "@/components/auth/register-form"
 import LandingNavbar from "@/components/landing/landing-navbar"
 
 export default async function RegisterPage() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const {
     data: { session },
