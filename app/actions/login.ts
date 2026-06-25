@@ -1,12 +1,19 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
+
+function getSafeRedirectPath(redirectTo: FormDataEntryValue | null) {
+    if (typeof redirectTo !== "string" || !redirectTo.startsWith("/") || redirectTo.startsWith("//")) {
+        return "/dashboard"
+    }
+
+    return redirectTo
+}
 
 export async function login(formData: FormData) {
     const email = formData.get("email") as string
     const password = formData.get("password") as string
-    const redirectTo = formData.get("redirectTo") as string || "/dashboard"
+    const redirectTo = getSafeRedirectPath(formData.get("redirectTo"))
 
     // Validate inputs
     if (!email || !password) {
@@ -24,7 +31,7 @@ export async function login(formData: FormData) {
     }
 
     try {
-        const supabase = createServerActionClient({ cookies })
+        const supabase = await createServerSupabaseClient()
 
         // Attempt to sign in
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -89,4 +96,4 @@ export async function login(formData: FormData) {
             error: "An unexpected error occurred during login",
         }
     }
-} 
+}

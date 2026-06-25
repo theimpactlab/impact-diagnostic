@@ -4,7 +4,7 @@ import LoginForm from "@/components/auth/login-form"
 import LandingNavbar from "@/components/landing/landing-navbar"
 
 export default async function LoginPage() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const {
     data: { session },
