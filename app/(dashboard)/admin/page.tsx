@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic"
 
 export default async function AdminPage() {
   // Create a Supabase client
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const supabase = createServerComponentClient({ cookies: () => cookieStore })
 
   try {

@@ -2,8 +2,8 @@ import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import type { Database } from "@/types/supabase"
 
-export function createArrayFormatServerClient() {
-  const cookieStore = cookies()
+export async function createArrayFormatServerClient() {
+  const cookieStore = await cookies()
 
   // Get the auth cookie
   const authCookie = cookieStore.get("sb-ujjbzummjplrvhwybiqp-auth-token")?.value

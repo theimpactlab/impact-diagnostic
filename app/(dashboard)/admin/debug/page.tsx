@@ -7,7 +7,7 @@ import { CheckCircle, XCircle, AlertCircle } from "lucide-react"
 export const dynamic = "force-dynamic"
 
 export default async function AdminDebugPage() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const supabase = createServerComponentClient({ cookies: () => cookieStore })
 
   // Get session

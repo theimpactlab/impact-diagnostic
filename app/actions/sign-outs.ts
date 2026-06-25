@@ -17,7 +17,7 @@ export async function signOut() {
     }
 
     // Clear any additional cookies if needed
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
 
     // Redirect to login page
     redirect("/login")
