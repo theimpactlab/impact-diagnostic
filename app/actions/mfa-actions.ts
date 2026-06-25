@@ -1,14 +1,21 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
+
+function getSafeRedirectPath(redirectTo: FormDataEntryValue | null) {
+    if (typeof redirectTo !== "string" || !redirectTo.startsWith("/") || redirectTo.startsWith("//")) {
+        return "/dashboard"
+    }
+
+    return redirectTo
+}
 
 // Keep only MFA verification for auth flow - other MFA operations can be done securely client-side
 export async function verifyMFA(formData: FormData) {
     const factorId = formData.get("factorId") as string
     const challengeId = formData.get("challengeId") as string
     const code = formData.get("code") as string
-    const redirectTo = formData.get("redirectTo") as string || "/dashboard"
+    const redirectTo = getSafeRedirectPath(formData.get("redirectTo"))
 
     // Validate inputs
     if (!factorId || !challengeId || !code) {
@@ -18,7 +25,7 @@ export async function verifyMFA(formData: FormData) {
     }
 
     try {
-        const supabase = createServerActionClient({ cookies })
+        const supabase = await createServerSupabaseClient()
 
         // Verify the MFA code
         const { error: verifyError } = await supabase.auth.mfa.verify({
@@ -44,4 +51,4 @@ export async function verifyMFA(formData: FormData) {
             error: "An unexpected error occurred during MFA verification",
         }
     }
-} 
+}

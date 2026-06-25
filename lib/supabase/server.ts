@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import type { Database } from "@/types/supabase"
-import { getSiteUrl } from "./server-config"
 
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies()
@@ -36,7 +35,6 @@ export async function createServerSupabaseClient() {
         autoRefreshToken: true,
         detectSessionInUrl: true,
         persistSession: true,
-        redirectTo: `${getSiteUrl()}/auth/callback`,
       },
     },
   )
