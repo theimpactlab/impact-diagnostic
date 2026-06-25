@@ -4,53 +4,7 @@ import type { NextRequest } from "next/server"
 import type { Database } from "@/types/supabase"
 
 export async function middleware(request: NextRequest) {
-  let res = NextResponse.next({ request })
-  let res = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
-
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: any) {
-          res = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          res.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: any) {
-          res = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          res.cookies.set({
-            name,
-            value: "",
-            ...options,
-          })
-        },
-      },
-    },
-  )
-
-  // Refresh session if expired
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  let response = NextResponse.next({ request })
 
   // Define public routes that don't require authentication
   const publicRoutes = [
@@ -83,7 +37,7 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  const supabase = createServerClient(
+  const supabaseMiddleware = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -96,9 +50,9 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          res = NextResponse.next({ request })
+          response = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) => {
-            res.cookies.set(name, value, options)
+            response.cookies.set(name, value, options)
           })
         },
       },
@@ -107,8 +61,8 @@ export async function middleware(request: NextRequest) {
 
   // Refresh session if expired
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { session: currentSession },
+  } = await supabaseMiddleware.auth.getSession()
 
   // If no session and trying to access protected route, redirect to login
   if (!currentSession) {
@@ -118,7 +72,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check if user has MFA factors enrolled
-  const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors()
+  const { data: factors, error: factorsError } = await supabaseMiddleware.auth.mfa.listFactors()
 
   if (!factorsError && factors) {
     // Check if user has any verified MFA factors
@@ -126,7 +80,7 @@ export async function middleware(request: NextRequest) {
 
     if (hasVerifiedMFA) {
       // User has MFA enrolled, check if they're at AAL2
-      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+      const { data: aalData } = await supabaseMiddleware.auth.mfa.getAuthenticatorAssuranceLevel()
 
       if (aalData?.currentLevel !== "aal2") {
         // User has MFA but hasn't verified it in this session - redirect to login
