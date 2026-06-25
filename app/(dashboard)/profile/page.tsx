@@ -13,7 +13,7 @@ export default async function ProfilePage({
 }: {
   searchParams: { tab?: string }
 }) {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const supabase = createServerComponentClient({ cookies: () => cookieStore })
 
   const {

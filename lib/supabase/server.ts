@@ -14,6 +14,7 @@ export async function createServerSupabaseClient() {
           return cookieStore
             .getAll()
             .filter((cookie) => !(cookie.name.endsWith("-auth-token") && cookie.value.startsWith("base64-")))
+          return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
           try {

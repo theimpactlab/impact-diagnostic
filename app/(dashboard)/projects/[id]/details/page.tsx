@@ -12,7 +12,7 @@ interface DetailsPageProps {
 }
 
 export default async function DetailsPage({ params }: DetailsPageProps) {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const supabase = createServerComponentClient({ cookies: () => cookieStore })
 
   // Get project details

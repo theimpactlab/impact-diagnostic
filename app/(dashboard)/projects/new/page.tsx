@@ -5,7 +5,7 @@ import CreateProjectForm from "@/components/projects/create-project-form"
 export const dynamic = "force-dynamic"
 
 export default async function NewProjectPage() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const supabase = createServerComponentClient({ cookies: () => cookieStore })
 
   const {
