@@ -1,13 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { supabase } from "@/lib/supabase/client"
 
 // Modified navItems to only include Features
 const navItems = [
@@ -18,26 +17,12 @@ const navItems = [
 export default function LandingNavbar() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-
-  // Check authentication status on component mount
-  useEffect(() => {
-    async function checkAuth() {
-      const { data } = await supabase.auth.getSession()
-      setIsAuthenticated(!!data.session)
-    }
-
-    checkAuth()
-  }, [])
-
-  // Determine home link based on authentication status
-  const homeLink = isAuthenticated ? "/dashboard" : "/"
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center">
-          <Link href={homeLink} className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2">
             <div className="relative w-8 h-8">
               <Image src="/trust-impact-logo.png" alt="Trust Impact Logo" fill className="object-contain" />
             </div>

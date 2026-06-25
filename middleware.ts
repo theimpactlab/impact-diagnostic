@@ -1,15 +1,9 @@
-import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
+import { createServerClient } from "@supabase/ssr"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 export async function middleware(request: NextRequest) {
-  const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req: request, res })
-
-  // Refresh session if expired
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  let response = NextResponse.next({ request })
 
   // Define public routes that don't require authentication
   const publicRoutes = [
@@ -39,18 +33,45 @@ export async function middleware(request: NextRequest) {
     // Allow common static file extensions
     /\.(png|jpg|jpeg|gif|svg|ico|css|js|woff|woff2|ttf|eot)$/.test(request.nextUrl.pathname)
   ) {
-    return res
+    return response
   }
 
+  const supabaseMiddleware = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookieEncoding: "raw",
+      cookies: {
+        getAll() {
+          return request.cookies
+            .getAll()
+            .filter((cookie) => !(cookie.name.endsWith("-auth-token") && cookie.value.startsWith("base64-")))
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          response = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
+          })
+        },
+      },
+    },
+  )
+
+  // Refresh session if expired
+  const {
+    data: { session: currentSession },
+  } = await supabaseMiddleware.auth.getSession()
+
   // If no session and trying to access protected route, redirect to login
-  if (!session) {
+  if (!currentSession) {
     const redirectUrl = new URL("/login", request.url)
     redirectUrl.searchParams.set("redirectTo", request.nextUrl.pathname)
     return NextResponse.redirect(redirectUrl)
   }
 
   // Check if user has MFA factors enrolled
-  const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors()
+  const { data: factors, error: factorsError } = await supabaseMiddleware.auth.mfa.listFactors()
 
   if (!factorsError && factors) {
     // Check if user has any verified MFA factors
@@ -58,7 +79,7 @@ export async function middleware(request: NextRequest) {
 
     if (hasVerifiedMFA) {
       // User has MFA enrolled, check if they're at AAL2
-      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+      const { data: aalData } = await supabaseMiddleware.auth.mfa.getAuthenticatorAssuranceLevel()
 
       if (aalData?.currentLevel !== 'aal2') {
         // User has MFA but hasn't verified it in this session - redirect to login
@@ -70,11 +91,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // Set cache control headers to prevent caching of authenticated pages
-  res.headers.set('Cache-Control', 'no-store, must-revalidate')
-  res.headers.set('Pragma', 'no-cache')
-  res.headers.set('Expires', '0')
+  response.headers.set('Cache-Control', 'no-store, must-revalidate')
+  response.headers.set('Pragma', 'no-cache')
+  response.headers.set('Expires', '0')
 
-  return res
+  return response
 }
 
 export const config = {
