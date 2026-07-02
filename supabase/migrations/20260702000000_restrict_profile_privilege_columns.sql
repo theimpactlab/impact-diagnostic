@@ -6,6 +6,12 @@
 --
 -- NOTE: migrations in this repo are not applied automatically. Run this SQL
 -- against the production Supabase project (SQL Editor or supabase db push).
+-- It is idempotent (safe to run more than once) and independent of the app
+-- code — it can be applied before or after deploying, in any order.
+--
+-- ROLLBACK — to fully undo this migration, run:
+--   DROP TRIGGER prevent_profile_privilege_escalation ON public.profiles;
+--   DROP FUNCTION public.prevent_profile_privilege_escalation();
 
 CREATE OR REPLACE FUNCTION public.prevent_profile_privilege_escalation()
 RETURNS TRIGGER AS $$
