@@ -1,12 +1,11 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
 export async function updateProjectStatus(projectId: string, status: "active" | "completed" | "on_hold") {
   try {
-    const supabase = createServerActionClient({ cookies })
+    const supabase = await createServerSupabaseClient()
 
     // Get the current user
     const {

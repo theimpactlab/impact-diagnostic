@@ -1,7 +1,6 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 export async function signUp(formData: FormData) {
     const email = formData.get("email") as string
@@ -30,7 +29,7 @@ export async function signUp(formData: FormData) {
     }
 
     try {
-        const supabase = createServerActionClient({ cookies })
+        const supabase = await createServerSupabaseClient()
 
         // Sign up with email and password - this will be executed server-side
         const { data, error } = await supabase.auth.signUp({

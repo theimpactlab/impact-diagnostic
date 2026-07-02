@@ -1,5 +1,4 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -14,7 +13,7 @@ export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 export default async function AnalyticsPage() {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createServerSupabaseClient()
 
   // Get the current user
   const {

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { supabase } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -15,7 +15,6 @@ export default function MakeSuperUserPage() {
   const [result, setResult] = useState<any>(null)
   const { toast } = useToast()
   const router = useRouter()
-  const supabase = createClientComponentClient()
 
   const handleMakeSuperUser = async () => {
     setIsLoading(true)

@@ -1,5 +1,4 @@
-import { cookies } from "next/headers"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react"
@@ -7,8 +6,7 @@ import { CheckCircle, XCircle, AlertCircle } from "lucide-react"
 export const dynamic = "force-dynamic"
 
 export default async function AdminDebugPage() {
-  const cookieStore = await cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const supabase = await createServerSupabaseClient()
 
   // Get session
   const {

@@ -1,12 +1,10 @@
-import { cookies } from "next/headers"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import CreateProjectForm from "@/components/projects/create-project-form"
 
 export const dynamic = "force-dynamic"
 
 export default async function NewProjectPage() {
-  const cookieStore = await cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const supabase = await createServerSupabaseClient()
 
   const {
     data: { session },

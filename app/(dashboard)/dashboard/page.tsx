@@ -1,5 +1,4 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, TrendingUp, Target, Users } from "lucide-react"
@@ -9,7 +8,7 @@ import Link from "next/link"
 export const dynamic = "force-dynamic"
 
 export default async function DashboardPage() {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createServerSupabaseClient()
 
   // Get the current user
   const {

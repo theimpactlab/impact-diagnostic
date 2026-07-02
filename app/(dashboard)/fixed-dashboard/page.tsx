@@ -1,6 +1,5 @@
 import Link from "next/link"
-import { cookies } from "next/headers"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import ProjectsList from "@/components/dashboard/projects-list"
 import CreateProjectButton from "@/components/dashboard/create-project-button"
 import { Button } from "@/components/ui/button"
@@ -10,8 +9,7 @@ export const dynamic = "force-dynamic"
 
 export default async function FixedDashboardPage() {
   // Create a Supabase client for server components
-  const cookieStore = await cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const supabase = await createServerSupabaseClient()
 
   // Get the session
   const {

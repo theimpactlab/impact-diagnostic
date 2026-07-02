@@ -1,15 +1,13 @@
 "use server"
 
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 export async function signIn(formData: FormData) {
   const email = formData.get("email") as string
   const password = formData.get("password") as string
 
-  const cookieStore = await cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = await createServerSupabaseClient()
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -25,8 +23,7 @@ export async function signIn(formData: FormData) {
 }
 
 export async function signOut() {
-  const cookieStore = await cookies()
-  const supabase = createServerActionClient({ cookies: () => cookieStore })
+  const supabase = await createServerSupabaseClient()
 
   await supabase.auth.signOut()
 

@@ -1,6 +1,5 @@
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import UsersManagement from "@/components/admin/users-management"
 import OrganizationsManagement from "@/components/admin/organizations-management"
 import ProjectsManagement from "@/components/admin/projects-management"
@@ -12,8 +11,7 @@ export const dynamic = "force-dynamic"
 
 export default async function AdminPage() {
   // Create a Supabase client
-  const cookieStore = await cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const supabase = await createServerSupabaseClient()
 
   try {
     // Get the session

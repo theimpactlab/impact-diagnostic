@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation"
-import { cookies } from "next/headers"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import ProjectHeader from "@/components/projects/project-header"
 import DomainsList from "@/components/projects/domains-list"
 import { ASSESSMENT_DOMAINS } from "@/lib/constants"
@@ -14,8 +13,7 @@ interface ProjectPageProps {
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
-  const cookieStore = await cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const supabase = await createServerSupabaseClient()
 
   const {
     data: { session },

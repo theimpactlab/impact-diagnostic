@@ -11,9 +11,6 @@ export async function createServerSupabaseClient() {
     {
       cookies: {
         getAll() {
-          return cookieStore
-            .getAll()
-            .filter((cookie) => !(cookie.name.endsWith("-auth-token") && cookie.value.startsWith("base64-")))
           return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
@@ -23,16 +20,9 @@ export async function createServerSupabaseClient() {
             })
           } catch {
             // Server Components cannot set cookies while rendering. In those
-            // cases, middleware or a Server Action refreshes the session.
+            // cases the middleware session refresh keeps cookies up to date.
           }
         },
-      },
-      cookieEncoding: "raw",
-      auth: {
-        flowType: "pkce",
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        persistSession: true,
       },
     },
   )
