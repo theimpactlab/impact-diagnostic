@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation"
-import { cookies } from "next/headers"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import ProjectDetailsForm from "@/components/projects/project-details-form"
 
 export const dynamic = "force-dynamic"
@@ -12,8 +11,7 @@ interface DetailsPageProps {
 }
 
 export default async function DetailsPage({ params }: DetailsPageProps) {
-  const cookieStore = await cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const supabase = await createServerSupabaseClient()
 
   // Get project details
   const { data: project, error: projectError } = await supabase

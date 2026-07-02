@@ -1,5 +1,4 @@
-import { cookies } from "next/headers"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ProfileForm from "@/components/profile/profile-form"
 import PasswordForm from "@/components/profile/password-form"
@@ -13,8 +12,7 @@ export default async function ProfilePage({
 }: {
   searchParams: { tab?: string }
 }) {
-  const cookieStore = await cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const supabase = await createServerSupabaseClient()
 
   const {
     data: { session },

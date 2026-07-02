@@ -1,6 +1,5 @@
 import type React from "react"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import DashboardNav from "@/components/dashboard/dashboard-nav"
 import MFAReminderBanner from "@/components/dashboard/mfa-reminder-banner"
@@ -8,14 +7,14 @@ import MFAReminderBanner from "@/components/dashboard/mfa-reminder-banner"
 export const dynamic = "force-dynamic"
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createServerSupabaseClient()
 
-  // Get the current user's session
+  // Get the current user (validates the JWT instead of trusting the cookie)
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     redirect("/login")
   }
 
@@ -23,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { data: currentUser } = await supabase
     .from("profiles")
     .select("id, email, full_name, is_super_user, avatar_url")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single()
 
   if (!currentUser) {

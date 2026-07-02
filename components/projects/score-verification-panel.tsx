@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { supabase } from "@/lib/supabase/client"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 
 interface ScoreVerificationResult {
@@ -25,7 +25,6 @@ export default function ScoreVerificationPanel() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
-  const supabase = createClientComponentClient()
 
   // Assessment domains (simplified version)
   const ASSESSMENT_DOMAINS = [

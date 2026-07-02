@@ -1,11 +1,10 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 export async function checkDatabaseSetup() {
   try {
-    const supabase = createServerActionClient({ cookies })
+    const supabase = await createServerSupabaseClient()
 
     // Get the current user
     const {

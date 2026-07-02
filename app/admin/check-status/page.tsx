@@ -1,5 +1,4 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -10,7 +9,7 @@ export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 export default async function CheckStatusPage() {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createServerSupabaseClient()
 
   // Get the current user's session
   const {

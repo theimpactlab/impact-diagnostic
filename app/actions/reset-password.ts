@@ -1,7 +1,6 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 export async function resetPassword(formData: FormData) {
     const newPassword = formData.get("new_password") as string
@@ -27,7 +26,7 @@ export async function resetPassword(formData: FormData) {
     }
 
     try {
-        const supabase = createServerActionClient({ cookies })
+        const supabase = await createServerSupabaseClient()
 
         // Get the user's session
         const {

@@ -4,12 +4,11 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { supabase } from "@/lib/supabase/client"
 
 export default function MFAReminderBanner() {
     const [showBanner, setShowBanner] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
-    const supabase = createClientComponentClient()
 
     useEffect(() => {
         checkMFAStatus()

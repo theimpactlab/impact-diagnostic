@@ -7,11 +7,19 @@ export default async function LoginPage() {
   const supabase = await createServerSupabaseClient()
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  if (session) {
-    redirect("/dashboard")
+  if (user) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+
+    // Only redirect when the middleware would let /dashboard through
+    // (no MFA enrolled, or MFA already verified this session). A user at
+    // aal1 who still needs aal2 must see the login form to complete the
+    // TOTP challenge — redirecting them would loop with the middleware.
+    if (!aal || aal.currentLevel === aal.nextLevel) {
+      redirect("/dashboard")
+    }
   }
 
   return (

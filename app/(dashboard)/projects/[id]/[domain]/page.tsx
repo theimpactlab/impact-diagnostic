@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation"
-import { cookies } from "next/headers"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import DomainAssessment from "@/components/projects/domain-assessment"
 import { ASSESSMENT_DOMAINS, DOMAIN_QUESTIONS } from "@/lib/constants"
 
@@ -14,8 +13,7 @@ interface DomainPageProps {
 }
 
 export default async function DomainPage({ params }: DomainPageProps) {
-  const cookieStore = await cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const supabase = await createServerSupabaseClient()
 
   // Get project details
   const { data: project, error: projectError } = await supabase

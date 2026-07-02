@@ -1,7 +1,6 @@
 "use server"
 
-import { createServerActionClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 export async function forgotPassword(formData: FormData) {
     const email = formData.get("email") as string
@@ -22,7 +21,7 @@ export async function forgotPassword(formData: FormData) {
     }
 
     try {
-        const supabase = createServerActionClient({ cookies })
+        const supabase = await createServerSupabaseClient()
 
         // Reset password for email - this will be executed server-side
         const { error } = await supabase.auth.resetPasswordForEmail(email, {

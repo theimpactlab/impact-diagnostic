@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { supabase } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -18,7 +18,6 @@ export default function MFAForm() {
     const [factorId, setFactorId] = useState<string | null>(null)
     const [verificationCode, setVerificationCode] = useState("")
     const { toast } = useToast()
-    const supabase = createClientComponentClient()
 
     useEffect(() => {
         checkMFAStatus()
