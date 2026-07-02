@@ -19,7 +19,6 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [mfaData, setMfaData] = useState<{
     factorId: string
-    challengeId: string
     redirectTo: string
   } | null>(null)
 
@@ -41,7 +40,6 @@ export default function LoginForm() {
       } else if (result?.requiresMFA) {
         setMfaData({
           factorId: result.factorId,
-          challengeId: result.challengeId,
           redirectTo: result.redirectTo,
         })
       } else if (result?.success && result?.redirectTo) {
@@ -66,11 +64,7 @@ export default function LoginForm() {
             Enter the verification code from your authenticator app
           </p>
         </div>
-        <MFAVerificationForm
-          factorId={mfaData.factorId}
-          challengeId={mfaData.challengeId}
-          redirectTo={mfaData.redirectTo}
-        />
+        <MFAVerificationForm factorId={mfaData.factorId} redirectTo={mfaData.redirectTo} />
       </div>
     )
   }

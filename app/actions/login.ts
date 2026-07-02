@@ -66,21 +66,14 @@ export async function login(formData: FormData) {
         const totpFactor = factors?.totp?.find(factor => factor.status === 'verified')
 
         if (totpFactor) {
-            // MFA is required, create challenge
-            const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
-                factorId: totpFactor.id
-            })
-
-            if (challengeError) {
-                return {
-                    error: challengeError.message,
-                }
-            }
-
+            // MFA is required. The challenge is created together with the
+            // verification in verifyMFA (challengeAndVerify): creating it here
+            // in a separate server invocation can fail on serverless hosting,
+            // where challenge and verify may egress from different IPs and
+            // Supabase rejects the mismatch.
             return {
                 requiresMFA: true,
                 factorId: totpFactor.id,
-                challengeId: challengeData.id,
                 redirectTo,
             }
         }

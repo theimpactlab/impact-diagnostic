@@ -11,11 +11,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface MFAVerificationFormProps {
     factorId: string
-    challengeId: string
     redirectTo: string
 }
 
-export default function MFAVerificationForm({ factorId, challengeId, redirectTo }: MFAVerificationFormProps) {
+export default function MFAVerificationForm({ factorId, redirectTo }: MFAVerificationFormProps) {
     const router = useRouter()
     const [code, setCode] = useState("")
     const [isLoading, setIsLoading] = useState(false)
@@ -29,7 +28,6 @@ export default function MFAVerificationForm({ factorId, challengeId, redirectTo 
         try {
             const formData = new FormData()
             formData.append("factorId", factorId)
-            formData.append("challengeId", challengeId)
             formData.append("code", code)
             formData.append("redirectTo", redirectTo)
 
