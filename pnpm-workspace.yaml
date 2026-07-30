@@ -2,3 +2,5 @@ allowBuilds:
   sharp: true
 onlyBuiltDependencies:
   - sharp
+overrides:
+  postcss: ">=8.5.18"
