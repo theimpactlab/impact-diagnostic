@@ -1,4 +1,7 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+"use client"
+
+import { useEffect, useState } from "react"
+import { apiFetch } from "@/lib/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -9,38 +12,27 @@ import ProjectsTable from "@/components/analytics/projects-table"
 import DomainAnalysis from "@/components/analytics/domain-analysis"
 import ExportButton from "@/components/analytics/export-button"
 
-export const dynamic = "force-dynamic"
-export const revalidate = 0
+export default function AnalyticsPage() {
+  const [data, setData] = useState<{
+    projects: any[]
+    assessments: any[]
+    scores: any[]
+  } | null>(null)
+  const [error, setError] = useState(false)
 
-export default async function AnalyticsPage() {
-  const supabase = await createServerSupabaseClient()
+  useEffect(() => {
+    Promise.all([
+      apiFetch<{ projects: any[] }>("projects.php"),
+      apiFetch<{ assessments: any[] }>("assessments.php"),
+      apiFetch<{ scores: any[] }>("scores.php"),
+    ])
+      .then(([p, a, s]) =>
+        setData({ projects: p.projects || [], assessments: a.assessments || [], scores: s.scores || [] })
+      )
+      .catch(() => setError(true))
+  }, [])
 
-  // Get the current user
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (!session) {
-    return (
-      <div className="container mx-auto py-10">
-        <Card>
-          <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
-            <CardDescription>Please log in to view analytics</CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    )
-  }
-
-  // Get all projects with status
-  const { data: projects, error: projectsError } = await supabase
-    .from("projects")
-    .select("id, name, created_at, organization_name, status")
-    .order("created_at", { ascending: false })
-
-  if (projectsError) {
-    console.error("Error fetching projects:", projectsError)
+  if (error) {
     return (
       <div className="container mx-auto py-10">
         <Card>
@@ -53,7 +45,15 @@ export default async function AnalyticsPage() {
     )
   }
 
-  if (!projects || projects.length === 0) {
+  if (!data) {
+    return (
+      <div className="container mx-auto py-10">
+        <p className="text-muted-foreground">Loading…</p>
+      </div>
+    )
+  }
+
+  if (data.projects.length === 0) {
     return (
       <div className="container mx-auto py-10">
         <div className="text-center space-y-6">
@@ -74,33 +74,8 @@ export default async function AnalyticsPage() {
     )
   }
 
-  // Get all assessments for these projects
-  const projectIds = projects.map((p) => p.id)
-  const { data: assessments, error: assessmentsError } = await supabase
-    .from("assessments")
-    .select("id, project_id, created_at, updated_at")
-    .in("project_id", projectIds)
-
-  // Get all scores from assessment_scores table for these assessments
-  const assessmentIds = assessments?.map((a) => a.id) || []
-  const { data: scores, error: scoresError } = await supabase
-    .from("assessment_scores")
-    .select("assessment_id, domain, score, created_at")
-    .in("assessment_id", assessmentIds)
-
-  if (scoresError) {
-    console.error("Error fetching scores:", scoresError)
-  }
-
-  const analyticsData = {
-    projects: projects || [],
-    assessments: assessments || [],
-    scores: scores || [],
-  }
-
-  // Count completed projects and scores
-  const completedProjects = projects.filter((p) => p.status === "completed").length
-  const totalScores = scores?.length || 0
+  const completedProjects = data.projects.filter((p) => p.status === "completed").length
+  const totalScores = data.scores.length
 
   return (
     <div className="container mx-auto py-10 space-y-8">
@@ -109,10 +84,9 @@ export default async function AnalyticsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
           <p className="text-muted-foreground">Comprehensive insights into your impact measurement capabilities</p>
         </div>
-        <ExportButton data={analyticsData} />
+        <ExportButton data={data} />
       </div>
 
-      {/* Show alert if no scores exist */}
       {totalScores === 0 && (
         <Card className="border-amber-200 bg-amber-50">
           <CardHeader>
@@ -121,8 +95,8 @@ export default async function AnalyticsPage() {
               Assessment Scores Needed
             </CardTitle>
             <CardDescription className="text-amber-700">
-              You have {projects.length} projects and {assessments?.length || 0} assessments, but no scores have been
-              recorded yet.
+              You have {data.projects.length} projects and {data.assessments.length} assessments, but no scores have
+              been recorded yet.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -133,7 +107,7 @@ export default async function AnalyticsPage() {
         </Card>
       )}
 
-      <MetricsCards data={analyticsData} />
+      <MetricsCards data={data} />
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
@@ -144,15 +118,15 @@ export default async function AnalyticsPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <AnalyticsCharts data={analyticsData} />
+          <AnalyticsCharts data={data} />
         </TabsContent>
 
         <TabsContent value="domains" className="space-y-6">
-          <DomainAnalysis data={analyticsData} />
+          <DomainAnalysis data={data} />
         </TabsContent>
 
         <TabsContent value="projects" className="space-y-6">
-          <ProjectsTable data={analyticsData} />
+          <ProjectsTable data={data} />
         </TabsContent>
 
         <TabsContent value="trends" className="space-y-6">

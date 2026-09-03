@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import { resetPassword } from "../actions/reset-password"
+import { Suspense, useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { apiFetch } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,42 +11,49 @@ import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
-export default function ResetPasswordPage() {
+function ResetPasswordInner() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const token = searchParams.get("token") || ""
+  const [password, setPassword] = useState("")
+  const [confirm, setConfirm] = useState("")
+  const [checking, setChecking] = useState(true)
+  const [tokenValid, setTokenValid] = useState<boolean | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
-  const router = useRouter()
 
-  async function handleSubmit(formData: FormData) {
+  useEffect(() => {
+    if (!token) {
+      setTokenValid(false)
+      setChecking(false)
+      return
+    }
+    apiFetch<{ token_valid: boolean }>(`reset-password.php?token=${encodeURIComponent(token)}`)
+      .then((d) => setTokenValid(d.token_valid))
+      .catch(() => setTokenValid(false))
+      .finally(() => setChecking(false))
+  }, [token])
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (password !== confirm) {
+      toast({ title: "Error", description: "Passwords do not match.", variant: "destructive" })
+      return
+    }
     setIsSubmitting(true)
-
     try {
-      const result = await resetPassword(formData)
-
-      if (result.error) {
-        toast({
-          title: "Error",
-          description: result.error,
-          variant: "destructive",
-        })
-      } else if (result.success) {
-        toast({
-          title: "Success",
-          description: "Your password has been updated successfully. Redirecting to dashboard...",
-        })
-
-        // Reset the form
-        const form = document.getElementById("reset-password-form") as HTMLFormElement
-        form.reset()
-
-        // Redirect to dashboard after successful password reset
-        setTimeout(() => {
-          router.push("/dashboard")
-        }, 2000)
-      }
-    } catch (error) {
+      await apiFetch("reset-password.php", { body: { token, password } })
+      toast({ title: "Success", description: "Your password has been updated. Redirecting to sign in..." })
+      setTimeout(() => router.push("/login"), 2000)
+    } catch (err: any) {
       toast({
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description:
+          err.code === "password_too_short"
+            ? "Password must be at least 12 characters."
+            : err.code === "invalid_or_expired_token"
+              ? "This reset link is invalid or has expired. Please request a new one."
+              : err.message || "Failed to reset password.",
         variant: "destructive",
       })
     } finally {
@@ -54,53 +62,69 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="container max-w-md py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>Reset Your Password</CardTitle>
-          <CardDescription>
-            Enter your new password below. You won't need to enter your current password.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form id="reset-password-form" action={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="new_password">New Password</Label>
-              <Input
-                id="new_password"
-                name="new_password"
-                type="password"
-                required
-                minLength={8}
-                autoComplete="new-password"
-                placeholder="Enter your new password"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm_password">Confirm New Password</Label>
-              <Input
-                id="confirm_password"
-                name="confirm_password"
-                type="password"
-                required
-                minLength={8}
-                autoComplete="new-password"
-                placeholder="Confirm your new password"
-              />
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Updating Password..." : "Update Password"}
-            </Button>
-          </form>
-
-          <div className="mt-4 text-center">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/dashboard">Cancel and go to Dashboard</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="flex min-h-screen flex-col">
+      <div className="container flex flex-1 w-full items-center justify-center py-12">
+        <div className="mx-auto w-full max-w-md space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">Reset your password</CardTitle>
+              <CardDescription>Choose a new password for your account (minimum 12 characters).</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {checking ? (
+                <p className="text-sm text-muted-foreground">Checking your reset link...</p>
+              ) : tokenValid ? (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="password">New password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      minLength={12}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm">Confirm password</Label>
+                    <Input
+                      id="confirm"
+                      type="password"
+                      value={confirm}
+                      onChange={(e) => setConfirm(e.target.value)}
+                      minLength={12}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? "Updating..." : "Update password"}
+                  </Button>
+                </form>
+              ) : (
+                <div className="space-y-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    This password reset link is invalid or has expired. Please request a new one.
+                  </p>
+                  <Link href="/forgot-password">
+                    <Button variant="outline" className="w-full">
+                      Request a new link
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense>
+      <ResetPasswordInner />
+    </Suspense>
   )
 }

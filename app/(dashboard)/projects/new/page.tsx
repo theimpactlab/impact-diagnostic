@@ -1,15 +1,8 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server"
 import CreateProjectForm from "@/components/projects/create-project-form"
 
-export const dynamic = "force-dynamic"
+export const metadata = { title: "Create New Project" }
 
-export default async function NewProjectPage() {
-  const supabase = await createServerSupabaseClient()
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
+export default function NewProjectPage() {
   return (
     <div className="max-w-2xl">
       <div className="mb-8">
@@ -17,7 +10,7 @@ export default async function NewProjectPage() {
         <p className="text-muted-foreground mt-2">Start a new impact assessment project for an organization</p>
       </div>
 
-      <CreateProjectForm userId={session!.user.id} />
+      <CreateProjectForm />
     </div>
   )
 }

@@ -1,48 +1,45 @@
+"use client"
+
 import type React from "react"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import DashboardNav from "@/components/dashboard/dashboard-nav"
 import MFAReminderBanner from "@/components/dashboard/mfa-reminder-banner"
+import { useSession } from "@/lib/api"
 
-export const dynamic = "force-dynamic"
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { session, loading } = useSession()
+  const router = useRouter()
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createServerSupabaseClient()
+  useEffect(() => {
+    if (!loading && !session) {
+      router.replace("/login")
+    }
+  }, [loading, session, router])
 
-  // Get the current user (validates the JWT instead of trusting the cookie)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/login")
-  }
-
-  // Get the current user's profile with super user status and avatar
-  const { data: currentUser } = await supabase
-    .from("profiles")
-    .select("id, email, full_name, is_super_user, avatar_url")
-    .eq("id", user.id)
-    .single()
-
-  if (!currentUser) {
-    // Handle case where profile doesn't exist
-    console.error("User profile not found")
+  if (loading) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <div className="p-8">
-          <h1 className="text-xl font-bold">Error: Profile not found</h1>
-          <p className="mt-2">Your user profile could not be loaded. Please try signing out and back in.</p>
-        </div>
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground">Loading…</p>
       </div>
     )
   }
 
+  if (!session) return null
+
   return (
     <div className="flex min-h-screen flex-col">
-      <DashboardNav user={currentUser} />
+      <DashboardNav
+        user={{
+          id: String(session.user.id),
+          email: session.user.email,
+          full_name: session.profile.full_name ?? null,
+          avatar_url: session.profile.avatar_url ?? null,
+          is_super_user: !!session.profile.is_super_user,
+        }}
+      />
       <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-6xl">
-        <MFAReminderBanner />
+        {!session.user.mfa_enabled && <MFAReminderBanner />}
         {children}
       </main>
     </div>

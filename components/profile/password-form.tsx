@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { supabase } from "@/lib/supabase/client"
+import { apiFetch } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 
 export default function PasswordForm() {
+  const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -37,33 +38,37 @@ export default function PasswordForm() {
       return
     }
 
+    if (!currentPassword) {
+      toast({
+        title: "Error",
+        description: "Please enter your current password",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
-      // Use secure client-side Supabase auth update
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
+      await apiFetch("change-password.php", {
+        body: { current_password: currentPassword, new_password: newPassword },
       })
 
-      if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        })
-      } else {
-        toast({
-          title: "Success",
-          description: "Your password has been updated successfully",
-        })
-        // Reset the form
-        setNewPassword("")
-        setConfirmPassword("")
-      }
-    } catch (error) {
+      toast({
+        title: "Success",
+        description: "Your password has been updated successfully",
+      })
+      // Reset the form
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description:
+          error.code === "invalid_current_password"
+            ? "Your current password is incorrect"
+            : error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -75,10 +80,20 @@ export default function PasswordForm() {
     <Card>
       <CardHeader>
         <CardTitle>Change Password</CardTitle>
-        <CardDescription>Update your password. You won't need to enter your current password.</CardDescription>
+        <CardDescription>Update your password.</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="current_password">Current Password</Label>
+            <Input
+              id="current_password"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="new_password">New Password</Label>
             <Input

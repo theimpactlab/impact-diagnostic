@@ -3,7 +3,8 @@
 import type React from "react"
 
 import { useState } from "react"
-import { signOut } from "@/app/actions/sign-outs"
+import { useRouter } from "next/navigation"
+import { signOut as apiSignOut } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
@@ -22,21 +23,17 @@ export default function SignOutButton({
   className,
 }: SignOutButtonProps) {
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const router = useRouter()
   const { toast } = useToast()
 
   const handleSignOut = async () => {
     setIsSigningOut(true)
 
     try {
-      await signOut()
-      // No need to handle redirect here - server action handles it
+      await apiSignOut()
+      router.push("/login")
+      router.refresh()
     } catch (error: any) {
-      // Check if this is a Next.js redirect (which is expected behavior)
-      if (error?.message?.includes('NEXT_REDIRECT') || error?.digest?.includes('NEXT_REDIRECT')) {
-        // This is actually a successful redirect, not an error
-        return
-      }
-
       console.error("Error signing out:", error)
       toast({
         title: "Error",

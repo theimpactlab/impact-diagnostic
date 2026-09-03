@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { signUp } from "@/app/actions/signup"
+import { apiFetch } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 
 export default function SignupPage() {
   const [email, setEmail] = useState("")
@@ -20,7 +19,6 @@ export default function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const { toast } = useToast()
-  const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -28,134 +26,79 @@ export default function SignupPage() {
     setMessage(null)
 
     try {
-      const formData = new FormData()
-      formData.append("email", email)
-      formData.append("password", password)
-      formData.append("fullName", fullName)
-
-      const result = await signUp(formData)
-
-      if (result.error) {
-        console.error("Registration error:", result.error)
-        setMessage({ type: "error", text: result.error })
-        toast({
-          title: "Error creating account",
-          description: result.error,
-          variant: "destructive",
-        })
-      } else if (result.success) {
-        setMessage({
-          type: "success",
-          text: result.success,
-        })
-        toast({
-          title: "Account created",
-          description: result.success,
-        })
-
-        // Clear form
-        setEmail("")
-        setPassword("")
-        setFullName("")
-
-        // Redirect to login page after a delay
-        setTimeout(() => {
-          router.push("/login")
-        }, 2000)
-      }
-    } catch (error) {
-      console.error("Unexpected error during registration:", error)
-      setMessage({
-        type: "error",
-        text: "An unexpected error occurred. Please try again.",
-      })
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      })
+      await apiFetch("register.php", { body: { email, password, full_name: fullName } })
+      const text = "Account created. Please check your email for a verification link."
+      setMessage({ type: "success", text })
+      toast({ title: "Account created", description: text })
+    } catch (err: any) {
+      const text =
+        err.code === "email_taken"
+          ? "An account with this email already exists."
+          : err.code === "password_too_short"
+            ? "Password must be at least 12 characters."
+            : err.message || "Registration failed. Please try again."
+      setMessage({ type: "error", text })
+      toast({ title: "Error", description: text, variant: "destructive" })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="container max-w-md py-10">
-      <Button asChild variant="ghost" size="sm" className="mb-6">
-        <Link href="/login">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Login
-        </Link>
-      </Button>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Create an Account</CardTitle>
-          <CardDescription>Enter your information to create your account.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input
-                id="fullName"
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-                autoComplete="name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete="new-password"
-              />
-            </div>
-
-            {message && (
-              <div
-                className={`p-3 rounded-md ${message.type === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
+    <div className="flex min-h-screen flex-col">
+      <div className="container flex flex-1 w-full items-center justify-center py-12">
+        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px]">
+          <Card className="mx-auto w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-2xl">Sign Up</CardTitle>
+              <CardDescription>Create an account to get started</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {message && (
+                <div
+                  className={`mb-4 rounded-md p-3 text-sm ${
+                    message.type === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
                   }`}
-              >
-                {message.text}
+                >
+                  {message.text}
+                </div>
+              )}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    minLength={12}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">Minimum 12 characters</p>
+                </div>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Creating account..." : "Sign Up"}
+                </Button>
+              </form>
+              <div className="mt-4 text-center">
+                <Link href="/login">
+                  <Button variant="link" className="gap-1">
+                    <ArrowLeft className="h-4 w-4" /> Back to sign in
+                  </Button>
+                </Link>
               </div>
-            )}
-
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Creating Account..." : "Create Account"}
-            </Button>
-          </form>
-
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{" "}
-              <Link href="/login" className="text-blue-600 hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }

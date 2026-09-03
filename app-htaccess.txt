@@ -1,0 +1,12 @@
+# Impact Diagnostic static export — map real dynamic URLs onto the exported placeholder pages
+# (the pages parse the real id/domain from window.location.pathname at runtime)
+RewriteEngine On
+
+# /projects/<id>/ → /projects/_/
+RewriteRule ^projects/([0-9]+)/?$ projects/_/index.html [L]
+# /projects/<id>/details/ → /projects/_/details/
+RewriteRule ^projects/([0-9]+)/details/?$ projects/_/details/index.html [L]
+# /projects/<id>/results/ → /projects/_/results/
+RewriteRule ^projects/([0-9]+)/results/?$ projects/_/results/index.html [L]
+# /projects/<id>/<domain>/ → /projects/_/_/
+RewriteRule ^projects/([0-9]+)/([a-z0-9_-]+)/?$ projects/_/_/index.html [L]

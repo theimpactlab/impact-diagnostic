@@ -1,34 +1,27 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { apiFetch, useSession } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle, AlertCircle, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
-export const dynamic = "force-dynamic"
-export const revalidate = 0
+export default function CheckStatusPage() {
+  const { session, loading } = useSession()
+  const router = useRouter()
+  const [users, setUsers] = useState<any[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-export default async function CheckStatusPage() {
-  const supabase = await createServerSupabaseClient()
-
-  // Get the current user's session
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (!session) {
-    redirect("/login")
-  }
-
-  // Get the current user's profile with super user status
-  const { data: currentUser, error: currentUserError } = await supabase
-    .from("profiles")
-    .select("id, email, full_name, is_super_user")
-    .eq("id", session.user.id)
-    .single()
-
-  // Try to get all users to test super user access
-  const { data: allUsers, error: allUsersError } = await supabase.from("profiles").select("id, email, is_super_user")
+  useEffect(() => {
+    if (!loading && !session) router.replace("/login")
+    if (!loading && session?.profile.is_super_user) {
+      apiFetch<{ users: any[] }>("admin-users.php")
+        .then((d) => setUsers(d.users || []))
+        .catch((e) => setError(e.message || "Failed to load users"))
+    }
+  }, [loading, session, router])
 
   return (
     <div className="container mx-auto py-10 space-y-8">
@@ -43,114 +36,46 @@ export default async function CheckStatusPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Your Profile</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              {session?.profile.is_super_user ? (
+                <>
+                  <CheckCircle className="h-5 w-5 text-green-600" /> Super User Active
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="h-5 w-5 text-amber-600" /> Not a Super User
+                </>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {currentUserError ? (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error Fetching Profile</AlertTitle>
-                <AlertDescription>{currentUserError.message}</AlertDescription>
-              </Alert>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Super User Status:</span>
-                  {currentUser?.is_super_user ? (
-                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs flex items-center">
-                      <CheckCircle className="h-3 w-3 mr-1" /> Enabled
-                    </span>
-                  ) : (
-                    <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs flex items-center">
-                      <AlertCircle className="h-3 w-3 mr-1" /> Disabled
-                    </span>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Profile Details:</p>
-                  <pre className="bg-gray-100 p-3 rounded text-xs overflow-x-auto">
-                    {JSON.stringify(
-                      {
-                        id: currentUser?.id,
-                        email: currentUser?.email,
-                        full_name: currentUser?.full_name,
-                        is_super_user: currentUser?.is_super_user,
-                      },
-                      null,
-                      2,
-                    )}
-                  </pre>
-                </div>
-              </div>
-            )}
+            <p className="text-sm">Signed in as {session?.user.email}</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              is_super_user: {String(!!session?.profile.is_super_user)}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Access Test</CardTitle>
+            <CardTitle>Users Visible ({users?.length ?? (error ? "error" : "…")})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Admin Access:</span>
-                {currentUser?.is_super_user ? (
-                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs flex items-center">
-                    <CheckCircle className="h-3 w-3 mr-1" /> Granted
-                  </span>
-                ) : (
-                  <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs flex items-center">
-                    <AlertCircle className="h-3 w-3 mr-1" /> Denied
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Can View All Users:</span>
-                {allUsersError ? (
-                  <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs flex items-center">
-                    <AlertCircle className="h-3 w-3 mr-1" /> Error
-                  </span>
-                ) : (
-                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs flex items-center">
-                    <CheckCircle className="h-3 w-3 mr-1" /> Yes ({allUsers?.length || 0} users)
-                  </span>
-                )}
-              </div>
-
-              {allUsersError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error Fetching All Users</AlertTitle>
-                  <AlertDescription>{allUsersError.message}</AlertDescription>
-                </Alert>
-              )}
-
-              {!allUsersError && allUsers && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Users Found:</p>
-                  <div className="bg-gray-100 p-3 rounded text-xs overflow-y-auto max-h-40">
-                    <table className="w-full">
-                      <thead>
-                        <tr>
-                          <th className="text-left">Email</th>
-                          <th className="text-right">Super User</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {allUsers.map((user) => (
-                          <tr key={user.id}>
-                            <td>{user.email}</td>
-                            <td className="text-right">{user.is_super_user ? "Yes" : "No"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
+            {error ? (
+              <Alert variant="destructive">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : (
+              <ul className="text-sm space-y-1 max-h-48 overflow-auto">
+                {(users || []).map((u) => (
+                  <li key={u.id} className="flex justify-between">
+                    <span>{u.email}</span>
+                    <span className="text-muted-foreground">{u.is_super_user ? "super user" : "user"}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>

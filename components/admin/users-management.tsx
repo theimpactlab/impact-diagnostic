@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Pencil } from "lucide-react"
-import { supabase } from "@/lib/supabase/client"
+import { apiFetch } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -67,18 +67,16 @@ export default function UsersManagement({ users: initialUsers, organizations }: 
     setIsLoading(true)
 
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          organization_id: values.organization_id,
-          is_super_user: values.is_super_user,
-        })
-        .eq("id", editingUser.id)
-
-      if (error) throw error
-
-      // Find the organization name
       const organization = organizations.find((org) => org.id === values.organization_id)
+
+      await apiFetch("admin-users.php", {
+        method: "PATCH",
+        body: {
+          user_id: Number(editingUser.id),
+          organization_id: values.organization_id ? Number(values.organization_id) : 0,
+          is_super_user: values.is_super_user,
+        },
+      })
 
       setUsers((prev) =>
         prev.map((user) =>

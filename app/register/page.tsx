@@ -1,20 +1,10 @@
-import { redirect } from "next/navigation"
 import Link from "next/link"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
 import RegisterForm from "@/components/auth/register-form"
 import LandingNavbar from "@/components/landing/landing-navbar"
 
-export default async function RegisterPage() {
-  const supabase = await createServerSupabaseClient()
+export const metadata = { title: "Create an account" }
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (session) {
-    redirect("/dashboard")
-  }
-
+export default function RegisterPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <LandingNavbar />

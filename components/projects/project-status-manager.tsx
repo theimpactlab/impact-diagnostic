@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { updateProjectStatus } from "@/app/actions/update-project-status"
+import { apiFetch } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -46,21 +46,25 @@ export default function ProjectStatusManager({ projectId, currentStatus, project
     setIsUpdating(true)
 
     try {
-      const result = await updateProjectStatus(projectId, newStatus)
-
-      if (result.error) {
+      try {
+        await apiFetch(`project.php?id=${encodeURIComponent(projectId)}`, {
+          method: "PATCH",
+          body: { status: newStatus },
+        })
+      } catch (err: any) {
         toast({
           title: "Error",
-          description: result.error,
+          description: err.message || "Failed to update status.",
           variant: "destructive",
         })
-      } else {
-        setStatus(newStatus)
-        toast({
-          title: "Success",
-          description: `${projectName} marked as ${statusConfig[newStatus].label.toLowerCase()}`,
-        })
+        setIsUpdating(false)
+        return
       }
+      setStatus(newStatus)
+      toast({
+        title: "Success",
+        description: `${projectName} marked as ${statusConfig[newStatus].label.toLowerCase()}`,
+      })
     } catch (error) {
       toast({
         title: "Error",

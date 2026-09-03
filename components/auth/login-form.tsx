@@ -1,13 +1,18 @@
 "use client"
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { login } from "@/app/actions/login"
+import { apiFetch } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import MFAVerificationForm from "./mfa-verification-form"
+
+const ERROR_MESSAGES: Record<string, string> = {
+  invalid_credentials: "Invalid email or password",
+  email_not_verified: "Please verify your email address before signing in. Check your inbox for the verification link.",
+}
 
 export default function LoginForm() {
   const searchParams = useSearchParams()
@@ -17,10 +22,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [mfaData, setMfaData] = useState<{
-    factorId: string
-    redirectTo: string
-  } | null>(null)
+  const [mfaRequired, setMfaRequired] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,34 +30,24 @@ export default function LoginForm() {
     setError(null)
 
     try {
-      const formData = new FormData()
-      formData.append("email", email)
-      formData.append("password", password)
-      formData.append("redirectTo", redirectTo)
+      const result = await apiFetch<{ mfa_required: boolean }>("login.php", {
+        body: { email, password },
+      })
 
-      const result = await login(formData)
-
-      if (result?.error) {
-        setError(result.error)
-      } else if (result?.requiresMFA) {
-        setMfaData({
-          factorId: result.factorId,
-          redirectTo: result.redirectTo,
-        })
-      } else if (result?.success && result?.redirectTo) {
-        // Successful login without MFA, redirect to dashboard
-        router.push(result.redirectTo)
-        return
+      if (result.mfa_required) {
+        setMfaRequired(true)
+      } else {
+        router.push(redirectTo)
+        router.refresh()
       }
     } catch (err: any) {
-      console.error("Login error:", err)
-      setError("An unexpected error occurred during login")
+      setError(ERROR_MESSAGES[err.code] || err.message || "An unexpected error occurred during login")
     } finally {
       setIsLoading(false)
     }
   }
 
-  if (mfaData) {
+  if (mfaRequired) {
     return (
       <div className="space-y-6">
         <div className="flex flex-col space-y-2 text-center">
@@ -64,7 +56,7 @@ export default function LoginForm() {
             Enter the verification code from your authenticator app
           </p>
         </div>
-        <MFAVerificationForm factorId={mfaData.factorId} redirectTo={mfaData.redirectTo} />
+        <MFAVerificationForm redirectTo={redirectTo} />
       </div>
     )
   }

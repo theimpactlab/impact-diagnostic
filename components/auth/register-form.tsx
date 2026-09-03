@@ -5,23 +5,24 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { signUp } from "@/app/actions/signup"
+
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { toast } from "@/hooks/use-toast"
+import { apiFetch, ApiError } from "@/lib/api"
 
 const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  password: z.string().min(12, {
-    message: "Password must be at least 12 characters.",
-  }),
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  password: z.string().min(12, { message: "Password must be at least 12 characters." }),
 })
+
+const ERROR_MESSAGES: Record<string, string> = {
+  email_taken: "An account with this email already exists.",
+  password_too_short: "Password must be at least 12 characters.",
+  invalid_email: "Please enter a valid email address.",
+}
 
 export default function RegisterForm() {
   const router = useRouter()
@@ -29,49 +30,27 @@ export default function RegisterForm() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-    },
+    defaultValues: { name: "", email: "", password: "" },
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
 
     try {
-      const formData = new FormData()
-      formData.append("email", values.email)
-      formData.append("password", values.password)
-      formData.append("fullName", values.name)
-
-      const result = await signUp(formData)
-
-      if (result.error) {
-        toast({
-          title: "Error creating account",
-          description: result.error,
-          variant: "destructive",
-        })
-      } else if (result.success) {
-        toast({
-          title: "Account created",
-          description: result.success,
-        })
-
-        // Reset form
-        form.reset()
-
-        // Redirect to login page after a short delay
-        setTimeout(() => {
-          router.push("/login")
-        }, 2000)
-      }
-    } catch (error: any) {
-      console.error("Registration error:", error)
+      await apiFetch("register.php", {
+        body: { email: values.email, password: values.password, full_name: values.name },
+      })
+      toast({
+        title: "Account created",
+        description: "Please check your email for a verification link to activate your account.",
+      })
+      form.reset()
+      setTimeout(() => router.push("/login"), 2000)
+    } catch (err: any) {
+      const e = err instanceof ApiError ? err : null
       toast({
         title: "Error creating account",
-        description: error.message || "Something went wrong. Please try again.",
+        description: (e && ERROR_MESSAGES[e.code]) || err.message || "Something went wrong. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -104,7 +83,7 @@ export default function RegisterForm() {
               <FormControl>
                 <Input placeholder="name@example.com" {...field} />
               </FormControl>
-              <FormDescription>We'll send a verification email to this address.</FormDescription>
+              <FormDescription>We&apos;ll send a verification email to this address.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -118,6 +97,7 @@ export default function RegisterForm() {
               <FormControl>
                 <Input type="password" {...field} />
               </FormControl>
+              <FormDescription>Minimum 12 characters.</FormDescription>
               <FormMessage />
             </FormItem>
           )}

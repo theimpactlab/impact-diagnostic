@@ -1,56 +1,64 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+"use client"
+
+import { useEffect, useState } from "react"
+import { apiFetch } from "@/lib/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, TrendingUp, Target, Users } from "lucide-react"
 import FilteredProjectsList from "@/components/projects/filtered-projects-list"
 import Link from "next/link"
 
-export const dynamic = "force-dynamic"
+interface Project {
+  id: number
+  name: string
+  description?: string | null
+  status: string
+  domain?: string | null
+  created_at: string
+  updated_at?: string
+  organization_name?: string | null
+  [key: string]: any
+}
 
-export default async function DashboardPage() {
-  const supabase = await createServerSupabaseClient()
+export default function DashboardPage() {
+  const [projects, setProjects] = useState<Project[] | null>(null)
+  const [error, setError] = useState(false)
 
-  // Get the current user
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  useEffect(() => {
+    apiFetch<{ projects: Project[] }>("projects.php")
+      .then((d) => setProjects(d.projects || []))
+      .catch(() => setError(true))
+  }, [])
 
-  if (!session) {
+  if (error) {
     return (
       <div className="container mx-auto py-10">
         <Card>
           <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
-            <CardDescription>Please log in to view your dashboard</CardDescription>
+            <CardTitle>Error</CardTitle>
+            <CardDescription>Failed to load your projects. Please refresh the page.</CardDescription>
           </CardHeader>
         </Card>
       </div>
     )
   }
 
-  // Get active projects only for dashboard
-  const { data: projects, error: projectsError } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-
-  if (projectsError) {
-    console.error("Error fetching projects:", projectsError)
+  if (projects === null) {
+    return (
+      <div className="container mx-auto py-10">
+        <p className="text-muted-foreground">Loading…</p>
+      </div>
+    )
   }
 
-  // Get all projects for metrics (including completed ones)
-  const { data: allProjects } = await supabase.from("projects").select("id, status")
-
-  // Calculate metrics
-  const totalProjects = allProjects?.length || 0
-  const activeProjects = projects?.length || 0
-  const completedProjects = allProjects?.filter((p) => p.status === "completed").length || 0
+  const active = projects.filter((p) => p.status === "active" || p.status === "in_progress")
+  const totalProjects = projects.length
+  const completedProjects = projects.filter((p) => p.status === "completed" || p.status === "complete").length
 
   const metrics = [
     {
       title: "Active Projects",
-      value: activeProjects,
+      value: active.length,
       description: "Currently in progress",
       icon: Target,
       trend: `${totalProjects} total projects`,
@@ -64,7 +72,7 @@ export default async function DashboardPage() {
     },
     {
       title: "Organizations",
-      value: new Set(allProjects?.map((p) => p.organization_name) || []).size,
+      value: new Set(projects.map((p) => p.organization_name).filter(Boolean)).size,
       description: "Unique organizations",
       icon: Users,
       trend: "Across all projects",
@@ -86,7 +94,6 @@ export default async function DashboardPage() {
         </Button>
       </div>
 
-      {/* Metrics Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         {metrics.map((metric, index) => {
           const Icon = metric.icon
@@ -106,7 +113,6 @@ export default async function DashboardPage() {
         })}
       </div>
 
-      {/* Active Projects Section */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold tracking-tight">Active Projects</h2>
@@ -115,8 +121,8 @@ export default async function DashboardPage() {
           </Button>
         </div>
 
-        {projects && projects.length > 0 ? (
-          <FilteredProjectsList projects={projects} showFilter={false} defaultFilter="active" />
+        {active.length > 0 ? (
+          <FilteredProjectsList projects={active} showFilter={false} defaultFilter="active" />
         ) : (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
@@ -125,59 +131,17 @@ export default async function DashboardPage() {
                 <div>
                   <h3 className="text-lg font-medium">No Active Projects</h3>
                   <p className="text-muted-foreground">
-                    You don't have any active projects. Create your first project to get started.
+                    You don&apos;t have any active projects. Create your first project to get started.
                   </p>
                 </div>
                 <Button asChild>
-                  <Link href="/projects/new">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Project
-                  </Link>
+                  <Link href="/projects/new">Create Project</Link>
                 </Button>
               </div>
             </CardContent>
           </Card>
         )}
       </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common tasks to help you get started</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Button variant="outline" asChild className="h-auto p-4 flex flex-col items-start">
-              <Link href="/projects/new">
-                <Plus className="h-5 w-5 mb-2" />
-                <div className="text-left">
-                  <div className="font-medium">Create New Project</div>
-                  <div className="text-xs text-muted-foreground">Start a new impact assessment</div>
-                </div>
-              </Link>
-            </Button>
-            <Button variant="outline" asChild className="h-auto p-4 flex flex-col items-start">
-              <Link href="/analytics">
-                <TrendingUp className="h-5 w-5 mb-2" />
-                <div className="text-left">
-                  <div className="font-medium">View Analytics</div>
-                  <div className="text-xs text-muted-foreground">Analyze your impact data</div>
-                </div>
-              </Link>
-            </Button>
-            <Button variant="outline" asChild className="h-auto p-4 flex flex-col items-start">
-              <Link href="/projects">
-                <Target className="h-5 w-5 mb-2" />
-                <div className="text-left">
-                  <div className="font-medium">Manage Projects</div>
-                  <div className="text-xs text-muted-foreground">View and organize all projects</div>
-                </div>
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

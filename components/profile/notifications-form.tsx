@@ -1,16 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase/client"
+import { apiFetch } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
 
-interface NotificationsFormProps {
-  userId: string
-}
+
 
 interface NotificationSettings {
   email_project_updates: boolean
@@ -19,7 +17,7 @@ interface NotificationSettings {
   browser_notifications: boolean
 }
 
-export default function NotificationsForm({ userId }: NotificationsFormProps) {
+export default function NotificationsForm() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [settings, setSettings] = useState<NotificationSettings>({
@@ -32,18 +30,9 @@ export default function NotificationsForm({ userId }: NotificationsFormProps) {
   useEffect(() => {
     async function loadNotificationSettings() {
       try {
-        const { data, error } = await supabase
-          .from("user_settings")
-          .select("notification_settings")
-          .eq("user_id", userId)
-          .single()
-
-        if (error && error.code !== "PGRST116") {
-          throw error
-        }
-
-        if (data?.notification_settings) {
-          setSettings(data.notification_settings as NotificationSettings)
+        const d = await apiFetch<{ settings: any }>("settings.php")
+        if (d.settings?.notification_settings) {
+          setSettings(d.settings.notification_settings as NotificationSettings)
         }
       } catch (error) {
         console.error("Error loading notification settings:", error)
@@ -53,19 +42,15 @@ export default function NotificationsForm({ userId }: NotificationsFormProps) {
     }
 
     loadNotificationSettings()
-  }, [userId])
+  }, [])
 
   async function saveSettings() {
     setIsSaving(true)
 
     try {
-      const { error } = await supabase.from("user_settings").upsert({
-        user_id: userId,
-        notification_settings: settings,
-        updated_at: new Date().toISOString(),
+      await apiFetch("settings.php", {
+        body: { notification_settings: settings },
       })
-
-      if (error) throw error
 
       toast({
         title: "Notification settings updated",

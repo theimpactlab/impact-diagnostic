@@ -14,7 +14,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Shield, UserIcon, Settings, LogOut, BarChart3, FolderOpen, Home } from "lucide-react"
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase/client"
 import SignOutButton from "@/components/auth/sign-out-button"
 
 interface DashboardNavProps {
@@ -43,34 +42,9 @@ export default function DashboardNav({ user }: DashboardNavProps) {
   }
 
   useEffect(() => {
-    async function checkSuperUser() {
-      if (user.is_super_user === undefined) {
-        try {
-          console.log("DashboardNav - Checking super user status for:", user.id)
-
-
-          // Simple check for super user status
-          const { data, error } = await supabase.from("profiles").select("is_super_user").eq("id", user.id).single()
-
-          console.log("DashboardNav - Super user check result:", { data, error })
-
-          if (error) {
-            console.error("DashboardNav - Error checking super user status:", error)
-            // If there's an error, assume not super user
-            setIsSuperUser(false)
-          } else {
-            setIsSuperUser(!!data?.is_super_user)
-            console.log("DashboardNav - Set isSuperUser to:", !!data?.is_super_user)
-          }
-        } catch (error) {
-          console.error("DashboardNav - Unexpected error checking super user status:", error)
-          setIsSuperUser(false)
-        }
-      }
-    }
-
-    checkSuperUser()
-  }, [user.id, user.is_super_user])
+    // user.is_super_user comes from session.php in the layout
+    setIsSuperUser(!!user.is_super_user)
+  }, [user.is_super_user])
 
   return (
     <header className="sticky top-0 z-10 border-b bg-background">

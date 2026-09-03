@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Trash2, Eye } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
-import { supabase } from "@/lib/supabase/client"
+import { apiFetch } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import {
   AlertDialog,
@@ -46,9 +46,7 @@ export default function ProjectsManagement({ projects: initialProjects }: Projec
 
     try {
       // Delete the project
-      const { error } = await supabase.from("projects").delete().eq("id", projectId)
-
-      if (error) throw error
+      await apiFetch(`project.php?id=${encodeURIComponent(projectId)}`, { method: "DELETE" })
 
       // Update the local state
       setProjects((prev) => prev.filter((project) => project.id !== projectId))

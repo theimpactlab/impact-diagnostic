@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { supabase } from "@/lib/supabase/client"
+import { apiFetch } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -53,19 +53,17 @@ export default function ProjectDetailsForm({ project }: ProjectDetailsFormProps)
     setIsLoading(true)
 
     try {
-      const { error } = await supabase
-        .from("projects")
-        .update({
+      await apiFetch(`project.php?id=${encodeURIComponent(project.id)}`, {
+        method: "PATCH",
+        body: {
           organization_name: values.organization_name,
           metadata: {
             lead_consultant: values.lead_consultant,
             research_consultant: values.research_consultant,
             data_consultant: values.data_consultant,
           },
-        })
-        .eq("id", project.id)
-
-      if (error) throw error
+        },
+      })
 
       toast({
         title: "Project details updated",

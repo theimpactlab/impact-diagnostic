@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, HelpCircle } from "lucide-react"
-import { supabase } from "@/lib/supabase/client"
+import { apiFetch } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -118,13 +118,8 @@ export default function DomainAssessment({ project, domain, questions, assessmen
         notes: notes[q.id] || null,
       }))
 
-      // Delete existing scores for this domain and assessment
-      await supabase.from("assessment_scores").delete().eq("assessment_id", assessmentId).eq("domain", domain.id)
-
-      // Insert new scores
-      const { error } = await supabase.from("assessment_scores").insert(scoresToSave)
-
-      if (error) throw error
+      // Per-domain replace (server-side)
+      await apiFetch("scores.php", { body: { assessment_id: Number(assessmentId), scores: scoresToSave } })
 
       toast({
         title: "Assessment saved",

@@ -1,41 +1,24 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+"use client"
+
+import { useEffect, useState } from "react"
+import { apiFetch } from "@/lib/api"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import FilteredProjectsList from "@/components/projects/filtered-projects-list"
 import Link from "next/link"
 
-export const dynamic = "force-dynamic"
+export default function ProjectsPage() {
+  const [projects, setProjects] = useState<any[] | null>(null)
+  const [error, setError] = useState(false)
 
-export default async function ProjectsPage() {
-  const supabase = await createServerSupabaseClient()
+  useEffect(() => {
+    apiFetch<{ projects: any[] }>("projects.php")
+      .then((d) => setProjects(d.projects || []))
+      .catch(() => setError(true))
+  }, [])
 
-  // Get the current user
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (!session) {
-    return (
-      <div className="container mx-auto py-10">
-        <Card>
-          <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
-            <CardDescription>Please log in to view your projects</CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    )
-  }
-
-  // Get all projects (we'll filter on the client side)
-  const { data: projects, error: projectsError } = await supabase
-    .from("projects")
-    .select("*")
-    .order("created_at", { ascending: false })
-
-  if (projectsError) {
-    console.error("Error fetching projects:", projectsError)
+  if (error) {
     return (
       <div className="container mx-auto py-10">
         <Card>
@@ -44,6 +27,14 @@ export default async function ProjectsPage() {
             <CardDescription>There was an error loading your projects. Please try again.</CardDescription>
           </CardHeader>
         </Card>
+      </div>
+    )
+  }
+
+  if (projects === null) {
+    return (
+      <div className="container mx-auto py-10">
+        <p className="text-muted-foreground">Loading…</p>
       </div>
     )
   }
@@ -63,7 +54,7 @@ export default async function ProjectsPage() {
         </Button>
       </div>
 
-      <FilteredProjectsList projects={projects || []} showFilter={true} defaultFilter="active" />
+      <FilteredProjectsList projects={projects} showFilter={true} defaultFilter="active" />
     </div>
   )
 }

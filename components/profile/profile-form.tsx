@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { supabase } from "@/lib/supabase/client"
+import { apiFetch, API_BASE } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -72,15 +72,10 @@ export default function ProfileForm({ profile, organizations }: ProfileFormProps
     setIsLoading(true)
 
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          full_name: values.full_name,
-          username: values.username,
-        })
-        .eq("id", profile.id)
-
-      if (error) throw error
+      await apiFetch("profile.php", {
+        method: "PATCH",
+        body: { full_name: values.full_name },
+      })
 
       toast({
         title: "Profile updated",
@@ -111,25 +106,11 @@ export default function ProfileForm({ profile, organizations }: ProfileFormProps
     setIsUploading(true)
 
     try {
-      // Upload the file to Supabase Storage
-      const fileExt = file.name.split(".").pop()
-      const fileName = `${profile.id}-${Math.random().toString(36).substring(2)}.${fileExt}`
-      const filePath = `avatars/${fileName}`
-
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, file)
-
-      if (uploadError) throw uploadError
-
-      // Get the public URL
-      const { data: publicURL } = supabase.storage.from("avatars").getPublicUrl(filePath)
-
-      // Update the user's avatar_url
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ avatar_url: publicURL.publicUrl })
-        .eq("id", profile.id)
-
-      if (updateError) throw updateError
+      // Upload the file to the PHP API (stores under uploads/avatars/)
+      const fd = new FormData()
+      fd.append("avatar", file)
+      const res = await apiFetch<{ avatar_url: string }>("profile/avatar.php", { formData: fd })
+      if (!res.avatar_url) throw new Error("Upload failed")
 
       toast({
         title: "Avatar updated",

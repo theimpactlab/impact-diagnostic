@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { supabase } from "@/lib/supabase/client"
+import { apiFetch } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Textarea } from "@/components/ui/textarea"
@@ -29,11 +29,7 @@ interface Organization {
   name: string
 }
 
-interface CreateProjectFormProps {
-  userId: string
-}
-
-export default function CreateProjectForm({ userId }: CreateProjectFormProps) {
+export default function CreateProjectForm() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [organizations, setOrganizations] = useState<Organization[]>([])
@@ -66,11 +62,10 @@ export default function CreateProjectForm({ userId }: CreateProjectFormProps) {
   useEffect(() => {
     async function fetchOrganizations() {
       try {
-        const { data, error } = await supabase.from("organizations").select("id, name").order("name")
-
-        if (error) throw error
-
-        setOrganizations(data || [])
+        const d = await apiFetch<{ organisations: Organization[] }>("organisations.php")
+        setOrganizations(
+          (d.organisations || []).map((o: any) => ({ id: String(o.id), name: o.name }))
+        )
       } catch (error) {
         console.error("Error fetching organizations:", error)
         toast({
@@ -117,30 +112,19 @@ export default function CreateProjectForm({ userId }: CreateProjectFormProps) {
       }
 
       // Create the project with the generated name
-      const { data: project, error: projectError } = await supabase
-        .from("projects")
-        .insert({
+      const d = await apiFetch<{ project: any }>("projects.php", {
+        body: {
           name: generatedProjectName,
           organization_id: values.organization_id,
           organization_name: organization.name,
           description: values.description || null,
-          owner_id: userId,
           metadata: {
             assessment_round: values.assessment_round,
           },
-        })
-        .select()
-        .single()
-
-      if (projectError) throw projectError
-
-      // Create initial assessment
-      const { error: assessmentError } = await supabase.from("assessments").insert({
-        project_id: project.id,
-        created_by: userId,
+          create_assessment: true,
+        },
       })
-
-      if (assessmentError) throw assessmentError
+      const project = d.project
 
       // Add more detailed logging
       console.log("Project created successfully:", project)
@@ -151,13 +135,7 @@ export default function CreateProjectForm({ userId }: CreateProjectFormProps) {
         description: "Your new project has been created successfully.",
       })
 
-      // Force a router refresh before navigation to ensure data is updated
-      router.refresh()
-
-      // Add a small delay before navigation to ensure refresh completes
-      setTimeout(() => {
-        router.push(`/projects/${project.id}`)
-      }, 500)
+      router.push(`/projects/${project.id}`)
     } catch (error: any) {
       console.error("Error creating project:", error)
       toast({

@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Plus, Pencil, Trash2 } from "lucide-react"
-import { supabase } from "@/lib/supabase/client"
+import { apiFetch } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -67,14 +67,10 @@ export default function OrganizationsManagement({ organizations: initialOrganiza
     try {
       if (editingOrg) {
         // Update existing organization
-        const { data, error } = await supabase
-          .from("organizations")
-          .update({ name: values.name, updated_at: new Date().toISOString() })
-          .eq("id", editingOrg.id)
-          .select()
-          .single()
-
-        if (error) throw error
+        await apiFetch("organisations.php", {
+          method: "PATCH",
+          body: { id: Number(editingOrg.id), name: values.name },
+        })
 
         setOrganizations((prev) => prev.map((org) => (org.id === editingOrg.id ? { ...org, name: values.name } : org)))
 
@@ -84,9 +80,7 @@ export default function OrganizationsManagement({ organizations: initialOrganiza
         })
       } else {
         // Create new organization
-        const { data, error } = await supabase.from("organizations").insert({ name: values.name }).select().single()
-
-        if (error) throw error
+        await apiFetch("organisations.php", { body: { name: values.name } })
 
         setOrganizations((prev) => [...prev, data])
 
@@ -119,9 +113,7 @@ export default function OrganizationsManagement({ organizations: initialOrganiza
 
   const handleDelete = async (orgId: string) => {
     try {
-      const { error } = await supabase.from("organizations").delete().eq("id", orgId)
-
-      if (error) throw error
+      await apiFetch(`organisations.php?id=${encodeURIComponent(orgId)}`, { method: "DELETE" })
 
       setOrganizations((prev) => prev.filter((org) => org.id !== orgId))
 

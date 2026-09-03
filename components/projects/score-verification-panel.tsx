@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { supabase } from "@/lib/supabase/client"
+import { apiFetch } from "@/lib/api"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 
 interface ScoreVerificationResult {
@@ -47,27 +47,19 @@ export default function ScoreVerificationPanel() {
 
     try {
       // Get the latest assessment for this project
-      const { data: assessment, error: assessmentError } = await supabase
-        .from("assessments")
-        .select("*")
-        .eq("project_id", projectId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single()
-
-      if (assessmentError) {
-        throw new Error(`Error fetching assessment: ${assessmentError.message}`)
+      const listRes = await apiFetch<{ assessments: any[] }>(
+        `assessments.php?project_id=${encodeURIComponent(projectId)}`
+      )
+      const assessment = (listRes.assessments || [])[0]
+      if (!assessment) {
+        throw new Error("No assessment found for this project")
       }
 
       // Get all scores for this assessment
-      const { data: scores, error: scoresError } = await supabase
-        .from("assessment_scores")
-        .select("*")
-        .eq("assessment_id", assessment.id)
-
-      if (scoresError) {
-        throw new Error(`Error fetching scores: ${scoresError.message}`)
-      }
+      const scoresRes = await apiFetch<{ scores: any[] }>(
+        `scores.php?assessment_id=${encodeURIComponent(assessment.id)}`
+      )
+      const scores = (scoresRes.scores || []).map((s) => ({ ...s, score: Number(s.score) }))
 
       // Calculate domain scores
       const verificationResults: ScoreVerificationResult[] = ASSESSMENT_DOMAINS.map((domain) => {

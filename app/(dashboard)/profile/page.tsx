@@ -1,22 +1,28 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+"use client"
+
+import { Suspense, useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { apiFetch, useSession } from "@/lib/api"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ProfileForm from "@/components/profile/profile-form"
 import PasswordForm from "@/components/profile/password-form"
 import NotificationsForm from "@/components/profile/notifications-form"
 import MFAForm from "@/components/profile/mfa-form"
 
-export const dynamic = "force-dynamic"
+function ProfileInner() {
+  const searchParams = useSearchParams()
+  const { session, loading } = useSession()
+  const [organizations, setOrganizations] = useState<any[]>([])
 
-export default async function ProfilePage({
-  searchParams
-}: {
-  searchParams: { tab?: string }
-}) {
-  const supabase = await createServerSupabaseClient()
+  useEffect(() => {
+    if (session) {
+      apiFetch<{ organisations: any[] }>("organisations.php")
+        .then((d) => setOrganizations(d.organisations || []))
+        .catch(() => {})
+    }
+  }, [session])
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  if (loading) return <p className="p-8 text-muted-foreground">Loading…</p>
 
   if (!session) {
     return (
@@ -29,42 +35,20 @@ export default async function ProfilePage({
     )
   }
 
-  // Get user profile with organization - use a simpler query to avoid relationship issues
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
-
-  // Get organization separately if profile exists
-  let organization = null
-  if (profile?.organization_id) {
-    const { data: orgData } = await supabase
-      .from("organizations")
-      .select("id, name")
-      .eq("id", profile.organization_id)
-      .single()
-
-    organization = orgData
+  const profileWithOrg = {
+    id: String(session.user.id),
+    email: session.user.email,
+    full_name: session.profile.full_name || "",
+    username: "",
+    avatar_url: session.profile.avatar_url ?? null,
+    is_super_user: !!session.profile.is_super_user,
+    organization_id: session.profile.organization_id ?? null,
+    organizations: session.profile.organization_id
+      ? { id: String(session.profile.organization_id), name: session.profile.organization_name }
+      : null,
   }
 
-  // Combine profile and organization data
-  const profileWithOrg = profile
-    ? {
-      ...profile,
-      organizations: organization,
-    }
-    : {
-      id: session.user.id,
-      email: session.user.email,
-      full_name: "",
-      username: "",
-      avatar_url: null,
-      is_super_user: false,
-      organizations: null,
-    }
-
-  // Get all organizations
-  const { data: organizations } = await supabase.from("organizations").select("*").order("name")
-
-  // Determine the default tab from search params
-  const defaultTab = searchParams.tab === 'mfa' ? 'mfa' : 'profile'
+  const defaultTab = searchParams.get("tab") === "mfa" ? "mfa" : "profile"
 
   return (
     <div>
@@ -80,7 +64,7 @@ export default async function ProfilePage({
 
         <TabsContent value="profile">
           <div className="max-w-2xl">
-            <ProfileForm profile={profileWithOrg} organizations={organizations || []} />
+            <ProfileForm profile={profileWithOrg} organizations={organizations} />
           </div>
         </TabsContent>
 
@@ -92,7 +76,7 @@ export default async function ProfilePage({
 
         <TabsContent value="notifications">
           <div className="max-w-2xl">
-            <NotificationsForm userId={session.user.id} />
+            <NotificationsForm />
           </div>
         </TabsContent>
 
@@ -103,5 +87,13 @@ export default async function ProfilePage({
         </TabsContent>
       </Tabs>
     </div>
+  )
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense>
+      <ProfileInner />
+    </Suspense>
   )
 }
